@@ -1,0 +1,53 @@
+# NVFlare provisioning for the ANCHOR-IBD PoC: one aggregation server, one
+# client per hospital (one DGX Spark each), and admin users.
+#
+#   nvflare provision -p deploy/project.yml -w deploy/workspace
+#
+# This creates a root CA plus a signed certificate and private key per
+# participant (mutual TLS), packaged as one "startup kit" folder each.
+# Hand each hospital ONLY its own kit over a secure channel.
+api_version: 3
+name: anchor_ibd
+description: ANCHOR-IBD federated learning PoC (Region Östergötland, Örebro University, Oslo University Hospital)
+
+participants:
+  # Must resolve from every hospital Spark: DNS name or an /etc/hosts entry
+  # pointing at the server host. In the single-Spark docker-compose setup it is
+  # the server container's network alias.
+  - name: anchor-fl-server
+    type: server
+    org: rise
+    fed_learn_port: 8002
+    admin_port: 8003
+  - name: rost
+    type: client
+    org: region_ostergotland
+  - name: oru
+    type: client
+    org: orebro_university
+  - name: ous
+    type: client
+    org: oslo_university_hospital
+  - name: admin@rise.se
+    type: admin
+    org: rise
+    role: project_admin
+  - name: lead@regionostergotland.se
+    type: admin
+    org: region_ostergotland
+    role: lead
+  - name: lead@ous-hf.no
+    type: admin
+    org: oslo_university_hospital
+    role: lead
+
+builders:
+  - path: nvflare.lighter.impl.workspace.WorkspaceBuilder
+    args:
+      template_file:
+        - master_template.yml
+  - path: nvflare.lighter.impl.static_file.StaticFileBuilder
+    args:
+      config_folder: config
+  - path: nvflare.lighter.impl.cert.CertBuilder
+  - path: nvflare.lighter.impl.signature.SignatureBuilder

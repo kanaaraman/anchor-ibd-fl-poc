@@ -1,0 +1,6 @@
+data/
+deploy/workspace/
+results/
+__pycache__/
+*.pyc
+data_eval/

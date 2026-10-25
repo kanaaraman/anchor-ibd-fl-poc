@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ANCHOR-IBD Federated PoC</title>
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f6f6f4; --surface: #fcfcfb; --border: #e3e2de; --grid: #ecebe7;
+  --text: #0b0b0b; --text-2: #52514e; --text-3: #7a7974;
+  --fed: #2a78d6; --local: #eb6834; --central: #1baf7a; --site: #a9a8a2;
+  --seq-0: #cde2fb; --seq-1: #104281;
+  --accent-soft: #e8f1fc;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #121211; --surface: #1a1a19; --border: #2e2e2c; --grid: #262624;
+    --text: #f0efec; --text-2: #c3c2b7; --text-3: #8d8c84;
+    --fed: #3987e5; --local: #d95926; --central: #199e70; --site: #5d5c57;
+    --seq-0: #1f2a38; --seq-1: #86b6ef;
+    --accent-soft: #1b2635;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #121211; --surface: #1a1a19; --border: #2e2e2c; --grid: #262624;
+  --text: #f0efec; --text-2: #c3c2b7; --text-3: #8d8c84;
+  --fed: #3987e5; --local: #d95926; --central: #199e70; --site: #5d5c57;
+  --seq-0: #1f2a38; --seq-1: #86b6ef;
+  --accent-soft: #1b2635;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+main { max-width: 1080px; margin: 0 auto; padding: 32px 16px 64px; }
+header .kicker { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-3); margin: 0 0 6px; }
+h1 { font-size: 28px; line-height: 1.2; margin: 0 0 8px; font-weight: 650; }
+h2 { font-size: 18px; margin: 0 0 4px; font-weight: 620; }
+.lede { color: var(--text-2); max-width: 760px; margin: 0; }
+.note { color: var(--text-3); font-size: 13px; margin: 4px 0 0; }
+section { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-top: 16px; }
+.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 24px; }
+.tile { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+.tile .v { font-size: 28px; font-weight: 650; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.tile .l { font-size: 13px; color: var(--text-2); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid2 > section { margin-top: 0; }
+.grid2 > *, .tiles > * { min-width: 0; }
+.scroll { overflow-x: auto; }
+.row { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--text-2); margin: 10px 0 4px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+svg { display: block; width: 100%; height: auto; overflow: visible; }
+svg text { fill: var(--text-2); font-size: 11px; font-family: inherit; }
+svg .axis line, svg .grid line { stroke: var(--grid); }
+svg .baseline { stroke: var(--border); }
+button { font: inherit; font-size: 13px; border: 1px solid var(--border); background: var(--surface); color: var(--text);
+  border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+button:hover { background: var(--accent-soft); }
+input[type=range] { flex: 1; min-width: 160px; accent-color: var(--fed); }
+.mono { font-variant-numeric: tabular-nums; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+th, td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--grid); }
+th:first-child, td:first-child { text-align: left; }
+th { color: var(--text-3); font-weight: 550; }
+.tip { position: fixed; pointer-events: none; background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px 10px; font-size: 12px; box-shadow: 0 4px 16px rgb(0 0 0 / .12); opacity: 0; transition: opacity .1s; z-index: 10; }
+.tip b { font-weight: 600; }
+.sw { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; }
+details { margin-top: 10px; font-size: 13px; color: var(--text-2); }
+summary { cursor: pointer; }
+.pill { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 99px; background: var(--accent-soft); color: var(--text-2); }
+@media (max-width: 760px) {
+  .tiles { grid-template-columns: 1fr 1fr; }
+  section { padding: 14px; }
+  .tile .v { font-size: 22px; }
+  .grid2 { grid-template-columns: 1fr; }
+  h1 { font-size: 23px; }
+}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <p class="kicker">ANCHOR-IBD · Proof of concept · NVIDIA DGX Spark + NVIDIA FLARE swarm learning</p>
+  <h1>Predicting biologic response across Swedish and Norwegian IBD registries without moving patient data</h1>
+  <p class="lede">Three hospital sites, Region Östergötland and Örebro (SWIBREG) and Oslo University Hospital (NorIBD), each keep their OMOP CDM extract on their own Spark. They train one shared model by passing model weights between themselves, and a different hospital does the averaging each round. No central server holds the data or the model. The outcome is steroid-free remission at week 52 on the index biologic.</p>
+  <p class="note">All patients are synthetic. No real registry data was used (consistent with WP2: "no patient data, synthetic examples").</p>
+</header>
+
+<div class="tiles" id="tiles"></div>
+
+<section>
+  <div class="row" style="justify-content:space-between">
+    <div><h2>Training replay</h2><p class="note">Each round, every hospital trains on its own patients. One hospital collects the updates and averages them, then sends the new shared model back. The coordinator only starts the job. NVFlare picks the averaging hospital at random; the order shown here is illustrative.</p></div>
+    <span class="pill" id="roundPill">Round 0</span>
+  </div>
+  <div class="grid2" style="margin-top:12px">
+    <div><svg id="net" viewBox="0 0 480 300" role="img" aria-label="Swarm network: three hospital DGX Sparks exchange model weights with each other; a coordinator only starts jobs"></svg></div>
+    <div>
+      <svg id="curve" viewBox="0 0 480 300" role="img" aria-label="Global model AUROC per round"></svg>
+      <div class="legend" id="curveLegend"></div>
+    </div>
+  </div>
+  <div class="row" style="margin-top:8px">
+    <button id="play">▶ Play</button>
+    <input type="range" id="slider" min="0" max="30" value="0" aria-label="Round">
+  </div>
+</section>
+
+<section>
+  <h2>Federated vs local-only vs pooled</h2>
+  <p class="note">AUROC on <span class="cfg-eval"></span> new synthetic patients per site who took no part in training, mean of <span class="cfg-seeds"></span> training seeds. "Pooled" puts all data in one place. That is not allowed in reality and is shown only as the ceiling. The axis starts at 0.5, which is chance level. Swarm learning computes the same weighted average as server-based FedAvg, so the federated scores come from the FedAvg simulation.</p>
+  <div class="legend" id="cmpLegend"></div>
+  <div class="scroll"><svg id="cmp" style="min-width:560px" viewBox="0 0 960 300" role="img" aria-label="AUROC by site and strategy"></svg></div>
+</section>
+
+<div class="grid2" style="margin-top:16px">
+  <section>
+    <h2>Sex-disaggregated performance</h2>
+    <p class="note">AUROC by sex on the evaluation patients from all sites. Sex-disaggregated analysis is a core requirement in ANCHOR-IBD.</p>
+    <svg id="sex" viewBox="0 0 460 260" role="img" aria-label="AUROC by sex and strategy"></svg>
+    <table id="calib" style="margin-top:10px"></table>
+  </section>
+  <section>
+    <h2>Privacy vs accuracy</h2>
+    <p class="note">Each site clips its update and adds Gaussian noise before sending it. More noise means less leakage and a lower AUROC.</p>
+    <svg id="dp" viewBox="0 0 460 260" role="img" aria-label="Pooled AUROC by noise multiplier"></svg>
+    <p class="note">Per-update Gaussian mechanism only. No formal ε is accounted here; a privacy accountant belongs in the follow-on project.</p>
+  </section>
+</div>
+
+<div class="grid2" style="margin-top:16px">
+  <section>
+    <h2>Does a local model travel?</h2>
+    <p class="note">AUROC of a model trained at one site only, tested at each site, compared with the single federated model.</p>
+    <div class="scroll"><svg id="heat" style="min-width:420px" viewBox="0 0 460 250" role="img" aria-label="Cross-site AUROC matrix"></svg></div>
+  </section>
+  <section>
+    <h2>Sites</h2>
+    <p class="note">Deliberately different case mixes (non-IID), as in the real registries.</p>
+    <div class="scroll"><table id="sites"></table></div>
+    <p class="note">* share in the site's evaluation cohort.</p>
+    <details><summary>Model and features</summary><p id="feat"></p></details>
+  </section>
+</div>
+</main>
+<div class="tip" id="tip"></div>
+
+<script src="results.js"></script>
+<script>
+const R = window.RESULTS;
+const SITES = Object.keys(R.sites);
+const SHORT = {rost: "Östergötland", oru: "Örebro", ous: "Oslo", pooled: "All sites"};
+const STRAT = [
+  {key: "fedavg", label: "Federated (swarm)", c: "var(--fed)"},
+  {key: "local", label: "Local only", c: "var(--local)"},
+  {key: "central", label: "Pooled (ceiling)", c: "var(--central)"},
+];
+const ns = "http://www.w3.org/2000/svg";
+const el = (tag, attrs = {}, parent) => {
+  const e = document.createElementNS(ns, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if (parent) parent.appendChild(e);
+  return e;
+};
+const f3 = x => (x == null || isNaN(x)) ? "–" : x.toFixed(3);
+const tip = document.getElementById("tip");
+function showTip(ev, html) {
+  tip.innerHTML = html; tip.style.opacity = 1;
+  const x = Math.min(ev.clientX + 14, innerWidth - tip.offsetWidth - 8);
+  tip.style.left = x + "px"; tip.style.top = (ev.clientY + 14) + "px";
+}
+const hideTip = () => tip.style.opacity = 0;
+document.querySelectorAll(".cfg-seeds").forEach(e => e.textContent = R.config.seeds);
+document.querySelectorAll(".cfg-eval").forEach(e => e.textContent = R.sites[SITES[0]].n_test.toLocaleString("en"));
+
+// value accessors: local is a model per site; "own site" for site s, mean of local models for pooled
+function val(strat, site, metric = "auroc") {
+  if (strat === "local") {
+    if (site === "pooled") {
+      const v = SITES.map(s => R.local[s].pooled[metric].mean);
+      return {mean: v.reduce((a, b) => a + b) / v.length, sd: null};
+    }
+    return R.local[site][site][metric];
+  }
+  return R[strat][site][metric];
+}
+
+// ---------- tiles
+const nPat = SITES.reduce((a, s) => a + R.sites[s].n_train + R.sites[s].n_val, 0);
+const kb = (R.config.n_params * 4 / 1024).toFixed(1);
+const tiles = [
+  [nPat.toLocaleString("en"), "synthetic patients at 3 sites"],
+  [R.patient_records_moved, "patient records leave a hospital"],
+  [f3(val("fedavg", "pooled").mean), `federated AUROC (local only: ${f3(val("local", "pooled").mean)})`],
+  [kb + " KB", `of weights per hospital per round, sent hospital to hospital (${R.config.n_params.toLocaleString("en")} weights)`],
+];
+document.getElementById("tiles").innerHTML = tiles.map(([v, l]) => `<div class="tile"><div class="v">${v}</div><div class="l">${l}</div></div>`).join("");
+
+// ---------- network replay (swarm: no central aggregator)
+const net = document.getElementById("net");
+const coord = {x: 240, y: 30};
+const nodes = [{s: SITES[0], x: 95, y: 148}, {s: SITES[1], x: 385, y: 148}, {s: SITES[2], x: 240, y: 252}];
+const BW = 150, BH = 84;
+// coordinator: control traffic only
+nodes.forEach(n => el("line", {x1: coord.x, y1: coord.y + 20, x2: n.x, y2: n.y - BH / 2, stroke: "var(--border)", "stroke-width": 1, "stroke-dasharray": "3 4"}, net));
+el("rect", {x: coord.x - 104, y: coord.y - 20, width: 208, height: 40, rx: 8, fill: "var(--bg)", stroke: "var(--border)", "stroke-width": 1, "stroke-dasharray": "4 3"}, net);
+el("text", {x: coord.x, y: coord.y - 3, "text-anchor": "middle", style: "font-size:11.5px;font-weight:600;fill:var(--text-2)"}, net).textContent = "Coordinator";
+el("text", {x: coord.x, y: coord.y + 12, "text-anchor": "middle", style: "font-size:10.5px;fill:var(--text-3)"}, net).textContent = "admits sites · starts jobs · holds no weights";
+// peer links between hospitals: model weights travel here
+const links = [];
+for (let i = 0; i < 3; i++) for (let j = i + 1; j < 3; j++)
+  links.push({i, j, line: el("line", {x1: nodes[i].x, y1: nodes[i].y, x2: nodes[j].x, y2: nodes[j].y, stroke: "var(--border)", "stroke-width": 2}, net)});
+const siteBox = {}, siteRole = {}, siteText = {};
+nodes.forEach(n => {
+  const g = el("g", {}, net);
+  siteBox[n.s] = el("rect", {x: n.x - BW / 2, y: n.y - BH / 2, width: BW, height: BH, rx: 10, fill: "var(--surface)", stroke: "var(--border)", "stroke-width": 1.5}, g);
+  el("text", {x: n.x, y: n.y - 22, "text-anchor": "middle", style: "font-size:12.5px;font-weight:600;fill:var(--text)"}, g).textContent = SHORT[n.s];
+  el("text", {x: n.x, y: n.y - 6, "text-anchor": "middle"}, g).textContent = `DGX Spark · ${R.sites[n.s].registry}`;
+  siteRole[n.s] = el("text", {x: n.x, y: n.y + 12, "text-anchor": "middle", style: "fill:var(--text-2)"}, g);
+  siteText[n.s] = el("text", {x: n.x, y: n.y + 29, "text-anchor": "middle", class: "mono", style: "fill:var(--text)"}, g);
+});
+const packets = nodes.map(() => el("circle", {r: 5, fill: "var(--fed)", opacity: 0}, net));
+// NVFlare picks the aggregating hospital at random each round; this fixed sequence stands in for it
+const AGG = Array.from({length: R.history.length + 1}, (_, r) => {
+  let x = (Math.imul(r, 0x9E3779B1) + 0x7F4A7C15) >>> 0;
+  x = Math.imul(x ^ (x >>> 15), 0x2C1B3C6D) >>> 0;
+  x = Math.imul(x ^ (x >>> 12), 0x297A2D39) >>> 0;
+  return ((x ^ (x >>> 15)) >>> 0) % 3;
+});
+
+// ---------- learning curve
+const H = R.history, NR = H.length;
+const curve = document.getElementById("curve");
+const C = {l: 40, r: 78, t: 12, b: 30, w: 480, h: 300};
+const allV = H.flatMap(h => SITES.concat("pooled").map(s => h[s])).concat([val("local", "pooled").mean, val("central", "pooled").mean]);
+const yMin = Math.floor(Math.min(...allV) * 20) / 20, yMax = Math.ceil(Math.max(...allV) * 20) / 20;
+const cx = r => C.l + (r / NR) * (C.w - C.l - C.r);
+const cy = v => C.t + (1 - (v - yMin) / (yMax - yMin)) * (C.h - C.t - C.b);
+for (let v = yMin; v <= yMax + 1e-9; v += 0.05) {
+  el("line", {x1: C.l, x2: C.w - C.r, y1: cy(v), y2: cy(v), stroke: "var(--grid)"}, curve);
+  el("text", {x: C.l - 6, y: cy(v) + 4, "text-anchor": "end"}, curve).textContent = v.toFixed(2);
+}
+for (let r = 0; r <= NR; r += 5) el("text", {x: cx(r), y: C.h - C.b + 16, "text-anchor": "middle"}, curve).textContent = r;
+el("text", {x: (C.l + C.w - C.r) / 2, y: C.h - 2, "text-anchor": "middle"}, curve).textContent = "Round";
+// end-of-line labels, nudged apart so they never overlap
+const labels = [];
+const ref = (v, color) => el("line", {x1: C.l, x2: C.w - C.r, y1: cy(v), y2: cy(v), stroke: color, "stroke-width": 1.5, "stroke-dasharray": "4 4"}, curve);
+ref(val("local", "pooled").mean, "var(--local)");
+ref(val("central", "pooled").mean, "var(--central)");
+labels.push({y: cy(val("local", "pooled").mean), t: "Local only", style: "fill:var(--text-2)"});
+labels.push({y: cy(val("central", "pooled").mean), t: "Pooled", style: "fill:var(--text-2)"});
+const path = key => H.map((h, i) => `${i ? "L" : "M"}${cx(h.round)},${cy(h[key])}`).join("");
+SITES.forEach(s => {
+  el("path", {d: path(s), fill: "none", stroke: "var(--site)", "stroke-width": 1.5}, curve);
+  labels.push({y: cy(H[NR - 1][s]), t: SHORT[s], style: "fill:var(--text-3)"});
+});
+el("path", {d: path("pooled"), fill: "none", stroke: "var(--fed)", "stroke-width": 2.5}, curve);
+labels.push({y: cy(H[NR - 1].pooled), t: "Federated", style: "fill:var(--text);font-weight:600"});
+labels.sort((a, b) => a.y - b.y);
+for (let i = 1; i < labels.length; i++) labels[i].y = Math.max(labels[i].y, labels[i - 1].y + 12);
+const over = labels[labels.length - 1].y - (C.h - C.b);
+if (over > 0) labels.forEach(l => l.y -= over);
+labels.forEach(l => el("text", {x: C.w - C.r + 6, y: l.y + 4, style: l.style}, curve).textContent = l.t);
+const cursor = el("line", {y1: C.t, y2: C.h - C.b, stroke: "var(--text-3)", "stroke-width": 1, opacity: 0}, curve);
+const dot = el("circle", {r: 5, fill: "var(--fed)", stroke: "var(--surface)", "stroke-width": 2, opacity: 0}, curve);
+document.getElementById("curveLegend").innerHTML =
+  `<span><i style="background:var(--fed)"></i>Federated, all sites</span><span><i style="background:var(--site)"></i>Federated, each site</span>` +
+  `<span><i style="background:var(--local)"></i>Local only (mean)</span><span><i style="background:var(--central)"></i>Pooled ceiling</span>`;
+const hit = el("rect", {x: C.l, y: C.t, width: C.w - C.l - C.r, height: C.h - C.t - C.b, fill: "transparent"}, curve);
+hit.addEventListener("mousemove", ev => {
+  const pt = curve.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY;
+  const p = pt.matrixTransform(curve.getScreenCTM().inverse());
+  const r = Math.max(1, Math.min(NR, Math.round((p.x - C.l) / (C.w - C.l - C.r) * NR)));
+  setRound(r, false);
+  const h = H[r - 1];
+  showTip(ev, `<b>Round ${r}</b><br><span class="sw" style="background:var(--fed)"></span>All sites ${f3(h.pooled)}<br>` +
+    SITES.map(s => `<span class="sw" style="background:var(--site)"></span>${SHORT[s]} ${f3(h[s])}`).join("<br>"));
+});
+hit.addEventListener("mouseleave", hideTip);
+
+// ---------- replay state
+const slider = document.getElementById("slider");
+slider.max = NR;
+let round = 0, timer = null, anim = null;
+function setRound(r, animate = true) {
+  round = r; slider.value = r;
+  document.getElementById("roundPill").textContent = `Round ${r} of ${NR}`;
+  const h = H[r - 1], ag = r ? AGG[r] : -1;
+  nodes.forEach((n, i) => {
+    const isAgg = i === ag;
+    siteBox[n.s].setAttribute("stroke", isAgg ? "var(--fed)" : "var(--border)");
+    siteBox[n.s].setAttribute("fill", isAgg ? "var(--accent-soft)" : "var(--surface)");
+    siteRole[n.s].textContent = !r ? "Waiting to start" : isAgg ? "Averaging this round" : "Training locally";
+    siteRole[n.s].style.fontWeight = isAgg ? 600 : 400;
+    siteText[n.s].textContent = r ? `AUROC ${f3(h[n.s])}` : `${R.sites[n.s].n_train} train patients`;
+  });
+  links.forEach(l => {
+    const on = l.i === ag || l.j === ag;
+    l.line.setAttribute("stroke", on ? "var(--fed)" : "var(--border)");
+    l.line.setAttribute("opacity", on ? 0.6 : 1);
+  });
+  if (r) {
+    cursor.setAttribute("x1", cx(r)); cursor.setAttribute("x2", cx(r)); cursor.setAttribute("opacity", 1);
+    dot.setAttribute("cx", cx(r)); dot.setAttribute("cy", cy(h.pooled)); dot.setAttribute("opacity", 1);
+  } else { cursor.setAttribute("opacity", 0); dot.setAttribute("opacity", 0); }
+  if (animate && r) fly(ag);
+}
+function fly(ag) {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  cancelAnimationFrame(anim);
+  const t0 = performance.now(), D = 900, hub = nodes[ag];
+  const step = now => {
+    const t = Math.min(1, (now - t0) / D);
+    // first half: the other hospitals send their updates to this round's aggregator;
+    // second half: the aggregator sends the new shared model back
+    const inbound = t < 0.5, u = 0.2 + 0.6 * (inbound ? t * 2 : (t - 0.5) * 2);
+    nodes.forEach((n, i) => {
+      if (i === ag) return packets[i].setAttribute("opacity", 0);
+      const a = inbound ? n : hub, b = inbound ? hub : n;
+      packets[i].setAttribute("cx", a.x + (b.x - a.x) * u);
+      packets[i].setAttribute("cy", a.y + (b.y - a.y) * u);
+      packets[i].setAttribute("fill", inbound ? "var(--text-3)" : "var(--fed)");
+      packets[i].setAttribute("opacity", t < 1 ? 1 : 0);
+    });
+    if (t < 1) anim = requestAnimationFrame(step);
+  };
+  anim = requestAnimationFrame(step);
+}
+const playBtn = document.getElementById("play");
+function stop() { clearInterval(timer); timer = null; playBtn.textContent = "▶ Play"; }
+playBtn.onclick = () => {
+  if (timer) return stop();
+  if (round >= NR) setRound(0, false);
+  playBtn.textContent = "❚❚ Pause";
+  timer = setInterval(() => { if (round >= NR) return stop(); setRound(round + 1); }, 1000);
+};
+slider.oninput = () => { stop(); setRound(+slider.value); };
+setRound(NR, false);
+
+// ---------- grouped bars helper
+function bars(svg, groups, series, get, opts) {
+  const W = +svg.viewBox.baseVal.width, Hh = +svg.viewBox.baseVal.height;
+  const m = {l: 40, r: 8, t: 10, b: 28};
+  const lo = opts.min, hi = opts.max;
+  const y = v => m.t + (1 - (v - lo) / (hi - lo)) * (Hh - m.t - m.b);
+  for (let v = lo; v <= hi + 1e-9; v += opts.step) {
+    el("line", {x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: "var(--grid)"}, svg);
+    el("text", {x: m.l - 6, y: y(v) + 4, "text-anchor": "end"}, svg).textContent = v.toFixed(2);
+  }
+  const gw = (W - m.l - m.r) / groups.length, bw = Math.min(36, (gw - 24) / series.length);
+  groups.forEach((g, gi) => {
+    const x0 = m.l + gi * gw + (gw - bw * series.length - 2 * (series.length - 1)) / 2;
+    el("text", {x: m.l + gi * gw + gw / 2, y: Hh - m.b + 17, "text-anchor": "middle", style: "fill:var(--text)"}, svg).textContent = g.label;
+    series.forEach((s, si) => {
+      const v = get(s, g);
+      if (v == null || isNaN(v.mean)) return;
+      const x = x0 + si * (bw + 2), top = y(v.mean), base = y(lo);
+      const h = Math.max(0, base - top), r = Math.min(4, h);
+      el("path", {d: `M${x},${base}V${top + r}Q${x},${top} ${x + r},${top}H${x + bw - r}Q${x + bw},${top} ${x + bw},${top + r}V${base}Z`, fill: s.c}, svg);
+      if (v.sd) el("line", {x1: x + bw / 2, x2: x + bw / 2, y1: y(v.mean - v.sd), y2: y(v.mean + v.sd), stroke: "var(--text)", "stroke-width": 1, opacity: .45}, svg);
+      if (opts.labels) el("text", {x: x + bw / 2, y: top - 5, "text-anchor": "middle", style: "font-size:10px;fill:var(--text-2)"}, svg).textContent = v.mean.toFixed(2);
+      const hitR = el("rect", {x: x - 1, y: m.t, width: bw + 2, height: Hh - m.t - m.b, fill: "transparent"}, svg);
+      hitR.addEventListener("mousemove", ev => showTip(ev, `<b>${g.label}</b><br><span class="sw" style="background:${s.c}"></span>${s.label}: ${f3(v.mean)}${v.sd ? ` ± ${f3(v.sd)}` : ""}`));
+      hitR.addEventListener("mouseleave", hideTip);
+    });
+  });
+  el("line", {x1: m.l, x2: W - m.r, y1: y(lo), y2: y(lo), class: "baseline"}, svg);
+}
+const legendHTML = STRAT.map(s => `<span><i style="background:${s.c}"></i>${s.label}</span>`).join("");
+document.getElementById("cmpLegend").innerHTML = legendHTML;
+bars(document.getElementById("cmp"), SITES.concat("pooled").map(s => ({key: s, label: s === "pooled" ? "All sites" : `${SHORT[s]} (${R.sites[s].registry})`})),
+  STRAT, (s, g) => val(s.key, g.key), {min: 0.5, max: 0.8, step: 0.05, labels: true});
+
+// ---------- sex
+const sexSvg = document.getElementById("sex");
+bars(sexSvg, [{key: "female", label: "Women"}, {key: "male", label: "Men"}], STRAT,
+  (s, g) => val(s.key, "pooled", "auroc_" + g.key), {min: 0.5, max: 0.8, step: 0.05, labels: true});
+const cal = document.getElementById("calib");
+const pct = x => (100 * x).toFixed(1) + "%";
+cal.innerHTML = `<tr><th>Federated model</th><th>Observed response</th><th>Mean predicted</th></tr>` +
+  ["female", "male"].map(k => `<tr><td>${k === "female" ? "Women" : "Men"}</td><td>${pct(R.fedavg.pooled["obs_rate_" + k].mean)}</td><td>${pct(R.fedavg.pooled["pred_rate_" + k].mean)}</td></tr>`).join("");
+
+// ---------- DP trade-off
+(function () {
+  const svg = document.getElementById("dp");
+  const W = 460, Hh = 260, m = {l: 40, r: 70, t: 10, b: 32};
+  const pts = [{z: 0, v: R.fedavg.pooled.auroc}].concat(Object.entries(R.fedavg_dp).map(([z, r]) => ({z: +z, v: r.pooled.auroc})));
+  const zMax = Math.max(...pts.map(p => p.z));
+  const lo = 0.55, hi = 0.8;
+  const x = z => m.l + (z / zMax) * (W - m.l - m.r), y = v => m.t + (1 - (v - lo) / (hi - lo)) * (Hh - m.t - m.b);
+  for (let v = lo; v <= hi + 1e-9; v += 0.05) {
+    el("line", {x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: "var(--grid)"}, svg);
+    el("text", {x: m.l - 6, y: y(v) + 4, "text-anchor": "end"}, svg).textContent = v.toFixed(2);
+  }
+  pts.forEach(p => el("text", {x: x(p.z), y: Hh - m.b + 16, "text-anchor": "middle"}, svg).textContent = p.z);
+  el("text", {x: (m.l + W - m.r) / 2, y: Hh - 2, "text-anchor": "middle"}, svg).textContent = "Noise multiplier (σ / clip norm)";
+  [["local", "Local only"], ["central", "Pooled"]].forEach(([k, lab]) => {
+    const v = val(k, "pooled").mean;
+    el("line", {x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: `var(--${k})`, "stroke-width": 1.5, "stroke-dasharray": "4 4"}, svg);
+    el("text", {x: W - m.r + 6, y: y(v) + 4}, svg).textContent = lab;
+  });
+  el("path", {d: pts.map((p, i) => `${i ? "L" : "M"}${x(p.z)},${y(p.v.mean)}`).join(""), fill: "none", stroke: "var(--fed)", "stroke-width": 2}, svg);
+  pts.forEach(p => {
+    el("circle", {cx: x(p.z), cy: y(p.v.mean), r: 5, fill: "var(--fed)", stroke: "var(--surface)", "stroke-width": 2}, svg);
+    const h = el("circle", {cx: x(p.z), cy: y(p.v.mean), r: 14, fill: "transparent"}, svg);
+    h.addEventListener("mousemove", ev => showTip(ev, `<b>Noise ${p.z}</b><br>Federated AUROC ${f3(p.v.mean)} ± ${f3(p.v.sd)}`));
+    h.addEventListener("mouseleave", hideTip);
+  });
+  el("text", {x: x(pts[pts.length - 1].z) + 8, y: y(pts[pts.length - 1].v.mean) + 4, style: "fill:var(--text);font-weight:600"}, svg).textContent = "Federated";
+})();
+
+// ---------- cross-site matrix
+(function () {
+  const svg = document.getElementById("heat");
+  const rows = SITES.map(s => ({label: `Trained at ${SHORT[s]}`, get: t => R.local[s][t].auroc.mean}))
+    .concat([{label: "Federated", get: t => R.fedavg[t].auroc.mean, bold: true}]);
+  const cols = SITES;
+  const m = {l: 130, t: 26}, cw = (460 - m.l) / cols.length, ch = 50;
+  const lo = 0.55, hi = 0.8;
+  const mix = v => `color-mix(in oklab, var(--seq-1) ${Math.round(100 * Math.max(0, Math.min(1, (v - lo) / (hi - lo))))}%, var(--seq-0))`;
+  cols.forEach((c, j) => el("text", {x: m.l + j * cw + cw / 2, y: 14, "text-anchor": "middle", style: "fill:var(--text)"}, svg).textContent = `Tested at ${SHORT[c]}`);
+  rows.forEach((r, i) => {
+    el("text", {x: m.l - 8, y: m.t + i * ch + ch / 2 + 4, "text-anchor": "end", style: `fill:var(--text);${r.bold ? "font-weight:600" : ""}`}, svg).textContent = r.label;
+    cols.forEach((c, j) => {
+      const v = r.get(c), dark = (v - lo) / (hi - lo) > 0.55;
+      el("rect", {x: m.l + j * cw + 1, y: m.t + i * ch + 1, width: cw - 2, height: ch - 2, rx: 4, fill: mix(v)}, svg);
+      el("text", {x: m.l + j * cw + cw / 2, y: m.t + i * ch + ch / 2 + 4, "text-anchor": "middle",
+        style: `font-size:12px;font-weight:${r.bold || SITES[i] === c ? 650 : 400};fill:${dark ? "#fff" : "var(--text)"}`}, svg).textContent = v.toFixed(3);
+    });
+  });
+})();
+
+// ---------- site table
+document.getElementById("sites").innerHTML =
+  `<tr><th>Site</th><th>Registry</th><th>Patients</th><th>Responders</th><th>Women*</th><th>Ustekinumab*</th></tr>` +
+  SITES.map(s => { const x = R.sites[s];
+    return `<tr><td>${x.name}</td><td>${x.registry} (${x.country})</td><td>${x.n_train + x.n_val}</td><td>${pct(x.response_rate)}</td><td>${pct(x.share_female)}</td><td>${pct(x.share_ustekinumab)}</td></tr>`; }).join("");
+document.getElementById("feat").textContent =
+  `${R.config.model}, ${R.config.n_params.toLocaleString("en")} weights, ${R.config.rounds} rounds × ${R.config.local_epochs} local epochs, early stopping on validation loss. ` +
+  `Features extracted from OMOP CDM tables with the same code at every site: ${R.config.features.join(", ")}.`;
+</script>
+</body>
+</html>

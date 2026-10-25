@@ -1,0 +1,709 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ANCHOR-IBD Swarm Demo</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400..700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a fixed 1920x1080 stage scaled to the window; one slide visible at a time.
+   Deliberately one look in every theme: dark navy and off-white slides, blue = swarm. */
+:root {
+  --ink: #10242B; --ink-2: #173640; --line-dark: #2E5260; --muted-dark: #8FA5AA; --soft-dark: #B9C9CC; --on-dark: #E8EEEA;
+  --paper: #F4F6F2; --card: #FFFFFF; --line: #D9E0DB; --text: #16282E; --text-2: #44525A; --text-3: #6A777D;
+  --swarm: #1F5FAE; --swarm-dark: #6FAEF2; --local: #D9622B; --pooled: #13966A;
+  --serif: "Source Serif 4", Georgia, serif; --sans: "IBM Plex Sans", "Segoe UI", Arial, sans-serif; --mono: "JetBrains Mono", Consolas, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: #0B1A1F; color: var(--on-dark); font-family: var(--sans); overflow: hidden; }
+#viewport { position: absolute; inset: 0 0 56px 0; }
+#stage { position: absolute; width: 1920px; height: 1080px; transform-origin: 0 0; overflow: hidden; border-radius: 6px; }
+.slide { position: absolute; inset: 0; padding: 128px; display: flex; flex-direction: column; gap: 36px;
+  opacity: 0; visibility: hidden; transition: opacity .45s ease, visibility 0s linear .45s; }
+.slide.on { opacity: 1; visibility: visible; transition: opacity .45s ease; }
+.dark { background: var(--ink); color: var(--on-dark); }
+.light { background: var(--paper); color: var(--text); }
+.accent { background: var(--swarm); color: #F4F8FD; }
+.eyebrow { font-size: 24px; letter-spacing: 3px; text-transform: uppercase; color: var(--swarm); margin: 0; }
+.dark .eyebrow { color: var(--swarm-dark); }
+h1, h2, h3, p { margin: 0; }
+h1 { font-family: var(--serif); font-size: 112px; font-weight: 500; line-height: 1.05; text-wrap: balance; }
+h2 { font-family: var(--serif); font-size: 72px; font-weight: 500; line-height: 1.1; text-wrap: balance; }
+h3 { font-size: 40px; font-weight: 600; line-height: 1.2; }
+.lead { font-size: 32px; line-height: 1.45; }
+.light .lead, .light .body { color: var(--text-2); }
+.dark .lead, .dark .body { color: var(--soft-dark); }
+.body { font-size: 28px; line-height: 1.45; }
+.small { font-size: 24px; line-height: 1.4; }
+.dark .small { color: var(--muted-dark); }
+.light .small { color: var(--text-3); }
+.foot { position: absolute; left: 128px; bottom: 56px; right: 128px; font-size: 24px; display: flex; justify-content: space-between; gap: 24px; }
+.dark .foot { color: var(--muted-dark); } .light .foot { color: var(--text-3); }
+.row { display: flex; gap: 52px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 44px; display: flex; flex-direction: column; gap: 18px; flex: 1; min-width: 0; }
+.card.inv { background: var(--ink); border-color: var(--ink); color: var(--on-dark); }
+.big { font-family: var(--serif); font-size: 96px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
+.num { font-variant-numeric: tabular-nums; }
+.icon { width: 64px; height: 64px; color: var(--swarm); }
+/* builds: elements with data-step appear in order when the slide opens */
+[data-step] { opacity: 0; transform: translateY(28px); transition: opacity .6s ease, transform .6s ease; }
+[data-step].in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) { [data-step] { transform: none; transition: opacity .2s; } .slide { transition: none; } }
+table { border-collapse: collapse; width: 100%; font-size: 28px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 18px 20px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 24px; color: var(--text-3); font-weight: 500; letter-spacing: 1px; text-transform: uppercase; }
+td.r, th.r { text-align: right; }
+.dark th, .dark td { border-color: var(--line-dark); } .dark th { color: var(--muted-dark); }
+.pill { display: inline-block; font-size: 24px; padding: 6px 18px; border-radius: 99px; font-weight: 500; }
+.ok { background: #DCEFE6; color: #0E5E40; } .todo { background: #F6E4D8; color: #8A3A12; }
+.steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; }
+.step { display: flex; flex-direction: column; gap: 16px; border-top: 4px solid var(--swarm); padding-top: 28px; }
+.dark .step { border-color: var(--swarm-dark); }
+.step .n { font-family: var(--serif); font-size: 64px; font-weight: 600; line-height: 1; color: var(--swarm); }
+.dark .step .n { color: var(--swarm-dark); }
+code, .mono { font-family: var(--mono); }
+.cmd { font-family: var(--mono); font-size: 26px; background: #0B1A1F; color: #CFE3F8; border-radius: 12px; padding: 22px 28px; line-height: 1.5; white-space: pre; overflow: hidden; }
+.legend { display: flex; gap: 36px; font-size: 26px; flex-wrap: wrap; }
+.legend i { display: inline-block; width: 22px; height: 22px; border-radius: 5px; margin-right: 12px; vertical-align: -3px; }
+svg text { font-family: var(--sans); }
+.term { position: absolute; background: #08161A; border: 1px solid #24434D; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
+.term .bar { height: 52px; display: flex; align-items: center; gap: 12px; padding: 0 22px; background: #0F2228; color: var(--muted-dark); font-size: 22px; }
+.term .bar b { width: 14px; height: 14px; border-radius: 50%; background: #2E5260; display: inline-block; }
+.term pre { margin: 0; padding: 22px 28px; font-family: var(--mono); font-size: 24px; line-height: 1.5; color: #CFE0E3; white-space: pre-wrap; flex: 1; overflow-y: auto; scrollbar-width: none; }
+.term .h { color: #FFFFFF; font-weight: 600; } .term .g { color: #7FD6A8; } .term .b { color: #8CC0F5; } .term .d { color: #7F969B; }
+.btn { font: inherit; font-size: 24px; color: var(--on-dark); background: var(--ink-2); border: 1px solid var(--line-dark); border-radius: 10px; padding: 10px 22px; cursor: pointer; }
+.btn:hover { background: #1F4A6E; }
+.btn:focus-visible { outline: 3px solid var(--swarm-dark); outline-offset: 2px; }
+/* bottom control bar (outside the scaled stage) */
+#bar { position: absolute; left: 0; right: 0; bottom: 0; height: 56px; display: flex; align-items: center; gap: 12px;
+  padding: 0 max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); background: #0B1A1F; color: #B9C9CC; font-size: 14px; }
+#bar button { font: inherit; font-size: 14px; color: #E8EEEA; background: #173640; border: 1px solid #2E5260; border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+#bar button:hover { background: #1F4A6E; }
+#bar button:focus-visible { outline: 2px solid #6FAEF2; outline-offset: 2px; }
+#progress { flex: 1; height: 4px; background: #173640; border-radius: 2px; overflow: hidden; min-width: 40px; }
+#progress i { display: block; height: 100%; width: 0; background: #6FAEF2; transition: width .3s; }
+#counter { font-variant-numeric: tabular-nums; min-width: 56px; text-align: center; }
+#notes { position: absolute; left: 50%; bottom: 68px; transform: translateX(-50%); width: min(900px, calc(100% - 32px)); max-height: 40%; overflow: auto;
+  background: rgba(11, 26, 31, .96); border: 1px solid #2E5260; border-radius: 12px; padding: 18px 22px; font-size: 16px; line-height: 1.55; color: #DDE7E8; }
+#notes b { color: #6FAEF2; font-weight: 600; display: block; margin-bottom: 6px; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; }
+@media (max-width: 600px) { #bar .hide-sm { display: none; } }
+</style>
+</head>
+<body>
+<div id="viewport"><div id="stage">
+
+<!-- 1 cover -->
+<section class="slide dark" id="cover" data-notes="Open with the one idea: three hospitals train one model together, and no patient record leaves a hospital. The animation is the method in miniature. Each hospital trains, then sends its weights to the hospital that averages this round; the highlighted hospital changes every round. The coordinator at the top only starts the job. Everything today runs on synthetic data, as WP2 requires.">
+  <div style="width:900px;display:flex;flex-direction:column;gap:40px;justify-content:center;flex:1">
+    <p class="eyebrow">ANCHOR-IBD · Proof of concept</p>
+    <h1>Training together, keeping data home</h1>
+    <p class="lead">Decentralised swarm learning across Swedish and Norwegian IBD registries on NVIDIA DGX Spark</p>
+    <p class="small">Region Östergötland · Örebro University · Oslo University Hospital · RISE · AbbVie</p>
+  </div>
+  <svg class="swarm" data-mode="mini" style="position:absolute;left:1032px;top:200px" width="760" height="680" viewBox="0 0 760 680" role="img" aria-label="Three hospitals exchanging model weights; one averages each round"></svg>
+  <div class="foot"><span>Synthetic data only</span><span>Press → to start</span></div>
+</section>
+
+<!-- 2 problem -->
+<section class="slide light" id="problem" data-notes="The project description gives the numbers: about 100,000 IBD patients in Sweden and 40,000 in Norway. Each country alone is too small for powered subgroup analyses, and treatment-response data cannot be analysed jointly today. This demo shows the technical half of the answer: learning across both registries without moving data.">
+  <p class="eyebrow">The problem</p>
+  <h2>One registry alone is too small</h2>
+  <div class="row" style="margin-top:40px">
+    <div class="card" data-step><div class="big num" data-count="100000">100,000</div><p class="lead">people with IBD in Sweden (SWIBREG)</p></div>
+    <div class="card" data-step><div class="big num" data-count="40000">40,000</div><p class="lead">people with IBD in Norway (NorIBD)</p></div>
+    <div class="card inv" data-step><div class="big num" style="color:var(--swarm-dark)" data-count="140000">140,000</div><p class="lead" style="color:var(--on-dark)">together, about 40% more than Sweden alone</p></div>
+  </div>
+  <p class="lead" data-step style="width:1560px">Treatment-response and subgroup studies are underpowered in each country, and patient data cannot simply be pooled across the border under GDPR, national law and EHDS.</p>
+  <div class="foot"><span>Source: ANCHOR-IBD project description (Vinnova 2026-00990), approximate figures</span></div>
+</section>
+
+<!-- 3 idea -->
+<section class="slide light" id="idea" data-notes="Three design choices carry the solution. Data stays where it is: only weights leave a hospital. There is no central party holding the model: hospitals take turns averaging, which is what swarm learning means. And every site uses OMOP CDM, so the same code runs everywhere. That is the WP2 data-model work made concrete.">
+  <p class="eyebrow">The idea</p>
+  <h2>Train together, keep data home</h2>
+  <div class="row" style="margin-top:40px">
+    <div class="card" data-step>
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+      <h3>No patient record moves</h3>
+      <p class="body">Each hospital trains on its own OMOP extract. Only model weights travel: 4.6 KB per hospital per round.</p>
+    </div>
+    <div class="card" data-step>
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="5" cy="17" r="2.5"/><circle cx="19" cy="17" r="2.5"/><circle cx="12" cy="5" r="2.5"/><path d="M7 15.5 10.5 7M17 15.5 13.5 7M7.5 17h9"/></svg>
+      <h3>No central model holder</h3>
+      <p class="body">Hospitals take turns averaging the model. The coordinator only starts the job and never sees the weights.</p>
+    </div>
+    <div class="card" data-step>
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><ellipse cx="12" cy="5.5" rx="7" ry="2.5"/><path d="M5 5.5v13c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5v-13M5 12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5"/></svg>
+      <h3>One data model, one code</h3>
+      <p class="body">Every site stores OMOP CDM tables, so the same feature code runs unchanged in Sweden and Norway.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 4 swarm live -->
+<section class="slide dark" id="swarm" data-notes="This replays the actual 30-round training run, with each hospital's real score for the shared model. Grey dots are local updates going to the averaging hospital; blue dots are the new shared model going back. Use Pause and Step to walk through a round. In the real NVFlare run the averaging hospital is picked at random each round; you will see that in the live demo log.">
+  <p class="eyebrow">How it works</p>
+  <h2 style="width:620px">Swarm learning, round by round</h2>
+  <p class="lead" style="width:600px">Every hospital trains on its own patients. One hospital collects the updates, averages them and sends the new shared model back. Next round, another hospital averages.</p>
+  <p class="body" style="width:600px">Scores: each hospital’s AUROC for the shared model.</p>
+  <div style="display:flex;gap:16px" data-step><button class="btn" data-swarm-toggle>Pause</button><button class="btn" data-swarm-step>Next round</button></div>
+  <svg class="swarm" data-mode="full" style="position:absolute;left:792px;top:110px" width="1000" height="820" viewBox="0 0 1000 820" role="img" aria-label="Swarm learning replay: three hospital DGX Sparks, round number and each hospital's score"></svg>
+  <div class="foot"><span>Synthetic data. NVFlare picks the averaging hospital at random; the order shown is illustrative.</span></div>
+</section>
+
+<!-- 5 one round -->
+<section class="slide light" id="round" data-notes="Walk through one round in four steps. Stress step 2: the update is encrypted for the averaging hospital only, so the relay in the middle cannot read it. And step 4: at the end, every hospital keeps its own copy of the best shared model.">
+  <p class="eyebrow">How it works</p>
+  <h2>One round in four steps</h2>
+  <div class="steps" style="margin-top:56px">
+    <div class="step" data-step><span class="n">1</span><h3>Train locally</h3><p class="body">Each hospital trains the shared model for 3 epochs on its own patients, on its own Spark’s GPU.</p></div>
+    <div class="step" data-step><span class="n">2</span><h3>Send to this round’s averager</h3><p class="body">One hospital is picked at random. The others send it their weights, encrypted for that hospital only.</p></div>
+    <div class="step" data-step><span class="n">3</span><h3>Average</h3><p class="body">The averaging hospital weights each update by its number of training steps and combines them.</p></div>
+    <div class="step" data-step><span class="n">4</span><h3>Share and repeat</h3><p class="body">The new shared model goes back to every hospital. The best one, by validation loss, is kept.</p></div>
+  </div>
+</section>
+
+<!-- 6 compare -->
+<section class="slide dark" id="compare" data-notes="The left animation is classic federated averaging: every update goes to one server, which holds the model. The right is swarm learning, what the PoC now uses: the averaging moves between hospitals. Both compute the same average, so accuracy is the same. What changes is who is trusted with the model.">
+  <p class="eyebrow">How it works</p>
+  <h2>Swarm removes the central model holder</h2>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:64px;margin-top:8px">
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <h3>Server-based FedAvg</h3>
+      <svg class="swarm" data-mode="hub" width="800" height="400" viewBox="0 0 800 400" role="img" aria-label="FedAvg: all updates go to one central server"></svg>
+      <p class="body">One server receives every update and holds the model. A single point of trust.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <h3>Swarm learning</h3>
+      <svg class="swarm" data-mode="pair" width="800" height="400" viewBox="0 0 800 400" role="img" aria-label="Swarm: hospitals take turns averaging; the coordinator holds no weights"></svg>
+      <p class="body">Hospitals take turns averaging. The coordinator starts jobs and never receives weights.</p>
+    </div>
+  </div>
+  <div class="foot"><span>Same weighted average, so the same accuracy; only who holds the model changes.</span></div>
+</section>
+
+<!-- 7 spark -->
+<section class="slide light" id="spark" data-notes="Each hospital's Spark runs one container: the NVFlare client, the training script, read-only access to that hospital's OMOP extract, and the GPU. It only needs an outbound connection to the coordinator on port 8002, so no inbound firewall rule at the hospital. Be honest about compute: this model has 1,185 weights and trains in seconds. The Spark matters as a standard hospital-owned GPU node for the next models: endoscopy images, clinical text.">
+  <p class="eyebrow">How the Sparks handle it</p>
+  <h2>Inside each hospital’s DGX Spark</h2>
+  <div style="display:grid;grid-template-columns:900px 1fr;gap:72px;margin-top:20px;align-items:start">
+    <svg viewBox="0 0 900 600" width="900" height="600" role="img" aria-label="A Spark inside the hospital network runs one container with the NVFlare client, training script, read-only OMOP data and the GPU; only an outbound connection leaves the hospital">
+      <rect x="2" y="2" width="896" height="596" rx="20" fill="#E9EEEA" stroke="#C9D3CD" stroke-width="2" stroke-dasharray="10 8"/>
+      <text x="32" y="52" font-size="26" fill="#44525A">Hospital network</text>
+      <rect x="40" y="80" width="560" height="480" rx="18" fill="#FFFFFF" stroke="#1F5FAE" stroke-width="3"/>
+      <text x="70" y="128" font-size="30" font-weight="600" fill="#16282E">DGX Spark</text>
+      <text x="70" y="164" font-size="24" fill="#6A777D">GB10 · 128 GB unified memory</text>
+      <g data-step>
+        <rect x="70" y="190" width="500" height="78" rx="12" fill="#E8F0FB"/><text x="96" y="238" font-size="26" fill="#16282E">NVFlare client (container)</text>
+      </g>
+      <g data-step>
+        <rect x="70" y="282" width="500" height="78" rx="12" fill="#E8F0FB"/><text x="96" y="330" font-size="26" fill="#16282E">Training script · PyTorch on GPU</text>
+      </g>
+      <g data-step>
+        <rect x="70" y="374" width="500" height="78" rx="12" fill="#EEF2EF"/><text x="96" y="422" font-size="26" fill="#16282E">OMOP CDM extract (read-only)</text>
+      </g>
+      <g data-step>
+        <rect x="70" y="466" width="500" height="70" rx="12" fill="#EEF2EF"/><text x="96" y="510" font-size="26" fill="#16282E">Certificate + private key</text>
+      </g>
+      <g data-step>
+        <path d="M600 230 H 820" stroke="#1F5FAE" stroke-width="4"/><path d="M820 230 l-18 -12 v24 z" fill="#1F5FAE"/>
+        <text x="640" y="205" font-size="24" fill="#1F5FAE">outbound only</text>
+        <text x="640" y="272" font-size="24" fill="#44525A">mTLS · port 8002</text>
+        <text x="640" y="302" font-size="24" fill="#44525A">weights, never</text>
+        <text x="640" y="332" font-size="24" fill="#44525A">records</text>
+      </g>
+    </svg>
+    <div style="display:flex;flex-direction:column;gap:36px">
+      <div data-step><p class="small">Sends per round</p><p class="big num" style="font-size:80px">4.6 KB</p><p class="body">1,185 model weights and summary scores</p></div>
+      <div data-step><p class="small">Receives</p><p class="body">The shared model, and its turn to average</p></div>
+      <div data-step><p class="small">Honest about compute</p><p class="body">This model trains in seconds even on a CPU. The Spark is the hospital’s own GPU node for the next models: endoscopy images and clinical text.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 8 model -->
+<section class="slide light" id="model" data-notes="The question is the therapy-selection question from the project description. Because the biologic is an input, the model can compare predicted response across the four drugs for the same patient. It is a research model on synthetic data and must not be used for clinical decisions.">
+  <p class="eyebrow">What we train</p>
+  <h2>Will this patient respond to this biologic?</h2>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:64px;margin-top:20px">
+    <div style="display:flex;flex-direction:column;gap:28px">
+      <div data-step><p class="small">Outcome</p><p class="lead" style="color:var(--text)">Steroid-free clinical remission 52 weeks after starting the biologic</p></div>
+      <div data-step><p class="small">Biologics compared</p><p class="lead" style="color:var(--text)">Infliximab · adalimumab · vedolizumab · ustekinumab</p></div>
+      <div data-step><p class="small">Model</p><p class="lead" style="color:var(--text)">Small neural network, 19 → 32 → 16 → 1, output = probability of response</p></div>
+    </div>
+    <div class="card" data-step style="flex:none">
+      <p class="small">19 inputs, read from OMOP CDM tables</p>
+      <p class="body" style="color:var(--text)">Age · sex · Crohn’s disease or ulcerative colitis · disease duration · Montreal location and extent · smoking · prior anti-TNF · azathioprine · prednisolone · CRP · faecal calprotectin · albumin · haemoglobin · biologic started</p>
+      <p class="small">Research model on synthetic data. Not for clinical decisions.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 9 cohorts -->
+<section class="slide light" id="cohorts" data-notes="The three synthetic cohorts are deliberately different, as real registries are. Oslo looks like an inception cohort: newly diagnosed, few anti-TNF-experienced patients, much more ustekinumab. That difference is what makes training together useful, and also what makes it hard.">
+  <p class="eyebrow">The data</p>
+  <h2>Three synthetic cohorts, three case mixes</h2>
+  <table style="margin-top:24px" data-step>
+    <tr><th style="width:34%">Hospital</th><th style="width:16%">Registry</th><th class="r" style="width:16%">Patients</th><th class="r" style="width:17%">Responders</th><th class="r" style="width:17%">Ustekinumab</th></tr>
+    <tr><td>Region Östergötland</td><td>SWIBREG (SE)</td><td class="r">600</td><td class="r">41%</td><td class="r">14%</td></tr>
+    <tr><td>Örebro University Hospital</td><td>SWIBREG (SE)</td><td class="r">450</td><td class="r">45%</td><td class="r">17%</td></tr>
+    <tr><td>Oslo University Hospital</td><td>NorIBD (NO)</td><td class="r">350</td><td class="r">52%</td><td class="r">46%</td></tr>
+  </table>
+  <p class="lead" data-step style="width:1560px">Each site’s extract is generated on its own Spark. A further 3,000 new synthetic patients per site, never used in training, measure every result that follows.</p>
+</section>
+
+<!-- 10 results -->
+<section class="slide light" id="results" data-notes="The headline result. On 3,000 new patients per hospital, training together beats training alone at every site, and gets close to the pooled ceiling, which in reality is not allowed. Overall: 0.714 alone, 0.728 together, 0.734 pooled. That is about 70 percent of the possible gain, with zero records moved. The gain is modest because cohorts are small and the model is simple; say so.">
+  <p class="eyebrow">Results</p>
+  <h2>Training together beats training alone at every hospital</h2>
+  <div style="display:grid;grid-template-columns:1180px 1fr;gap:64px;align-items:start">
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="legend"><span><i style="background:var(--local)"></i>Each hospital alone</span><span><i style="background:var(--swarm)"></i>Swarm, together</span><span><i style="background:var(--pooled)"></i>Pooled (not allowed)</span></div>
+      <svg id="barsChart" width="1180" height="560" viewBox="0 0 1180 560" role="img" aria-label="AUROC by hospital: alone, swarm, pooled"></svg>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:28px;padding-top:60px">
+      <div data-step><p class="big num" style="color:var(--swarm)">70%</p><p class="body">of the gain from pooling, without moving a record</p></div>
+      <div data-step><p class="body"><span class="num">0.714</span> alone → <b class="num">0.728</b> together → <span class="num">0.734</span> pooled</p></div>
+    </div>
+  </div>
+  <div class="foot"><span>AUROC on 3,000 new synthetic patients per hospital, mean of 5 training runs. Axis starts at 0.5 (chance).</span></div>
+</section>
+
+<!-- 11 curve -->
+<section class="slide dark" id="curve" data-notes="The learning curve for the shared model over 30 rounds. Within about ten rounds, the model across all hospitals passes what the hospitals reach alone and moves toward the pooled ceiling. Oslo is the hardest site: its case mix is the most different.">
+  <p class="eyebrow">Results</p>
+  <h2>The shared model passes local-only training within rounds</h2>
+  <svg id="curveChart" width="1664" height="640" viewBox="0 0 1664 640" role="img" aria-label="AUROC of the shared model per round, with local-only and pooled reference lines"></svg>
+</section>
+
+<!-- 12 fairness -->
+<section class="slide light" id="fairness" data-notes="Two requirements from the project description. Left: sex-disaggregated results, a core requirement. The model is reported separately for women and men, and its predicted response rates match the observed rates for both. Right: privacy. Each hospital can clip its update and add noise before sending. A little noise costs nothing; more noise costs more than training together gains. No formal epsilon is computed yet; that belongs in the follow-on.">
+  <p class="eyebrow">Results</p>
+  <h2>Reported for women and men, with a privacy dial</h2>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:72px">
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <h3>AUROC by sex, all hospitals</h3>
+      <svg id="sexChart" width="796" height="420" viewBox="0 0 796 420" role="img" aria-label="AUROC for women and men by strategy"></svg>
+      <p class="body">Predicted vs observed response: women 44.4% vs 44.7%, men 49.0% vs 50.0%</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <h3>Noise added to each update</h3>
+      <svg id="dpChart" width="796" height="420" viewBox="0 0 796 420" role="img" aria-label="Swarm AUROC falls as noise rises"></svg>
+      <p class="body">No formal privacy budget (ε) is computed yet.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 13 live demo -->
+<section class="slide dark" id="demo" data-notes="This is the live demo. One command provisions real certificates, starts a coordinator and three hospital clients as separate processes, and submits the swarm job as the RISE admin. The terminal replays a real run. Look for the averaging hospital changing between rounds, and the last line: zero aggregation steps at the coordinator. To run it live: bash demo/run_demo.sh.">
+  <p class="eyebrow">Live demo</p>
+  <h2 style="width:560px">One command, three hospitals</h2>
+  <p class="lead" style="width:560px">Real certificates, a coordinator and three hospital clients as separate processes, the swarm job submitted by the RISE admin.</p>
+  <div class="cmd" style="width:560px">bash demo/run_demo.sh</div>
+  <p class="body" style="width:560px">Watch for the averaging hospital changing each round, and zero aggregation at the coordinator.</p>
+  <div class="term" style="left:760px;top:110px;width:1032px;height:840px"><div class="bar"><b></b><b></b><b></b><span>anchor-ibd-fl-poc · replay of a real run</span></div><pre id="termOut"></pre></div>
+</section>
+
+<!-- 14 rollout -->
+<section class="slide light" id="rollout" data-notes="Rollout in four steps. RISE creates one certificate kit per participant and sends each hospital only its own. The coordinator can be any small Linux host. Each hospital builds the image, checks the GPU, mounts its data and starts its client. Then the admin submits the job. Start on one Spark with four containers before going to three hospitals.">
+  <p class="eyebrow">Rollout on Sparks</p>
+  <h2>From one Spark to three hospitals</h2>
+  <div class="steps" style="margin-top:40px">
+    <div class="step" data-step><span class="n">1</span><h3>Identities</h3><p class="body">RISE runs <code>nvflare provision</code> and sends each hospital only its own kit.</p></div>
+    <div class="step" data-step><span class="n">2</span><h3>Coordinator</h3><p class="body">Any small Linux host. <code>run_site.sh server</code></p></div>
+    <div class="step" data-step><span class="n">3</span><h3>Each Spark</h3><p class="body">Build the image, check the GPU, mount the OMOP extract. <code>run_site.sh client</code></p></div>
+    <div class="step" data-step><span class="n">4</span><h3>Submit</h3><p class="body"><code>job.py --workflow swarm --env prod</code></p></div>
+  </div>
+  <p class="lead" data-step style="width:1560px">Try it first on one Spark: four containers with the same certificates and job (<code>docker compose</code>), then move each hospital onto its own Spark.</p>
+</section>
+
+<!-- 15 needs -->
+<section class="slide light" id="needs" data-notes="What is needed, per category. The key governance point: real registry data needs ethics approval, a DPIA and the data agreements from WP1 before anything here touches real patients.">
+  <p class="eyebrow">What you need</p>
+  <h2>Hardware, network, software, data, people</h2>
+  <table style="margin-top:16px" data-step>
+    <tr><td style="width:22%;font-weight:600">Hardware</td><td>One DGX Spark per hospital; one small Linux host as coordinator (no GPU)</td></tr>
+    <tr><td style="font-weight:600">Network</td><td>DNS name for the coordinator; ports 8002 and 8003 open there only; hospitals outbound only</td></tr>
+    <tr><td style="font-weight:600">Software</td><td>DGX OS with Docker, NVIDIA PyTorch container from NGC, NVFlare 2.9.0</td></tr>
+    <tr><td style="font-weight:600">Data</td><td>An OMOP CDM extract per hospital; real data needs ethics approval, a DPIA and data agreements</td></tr>
+    <tr><td style="font-weight:600">People</td><td>An IT contact at each hospital; one admin at RISE who distributes the kits</td></tr>
+  </table>
+</section>
+
+<!-- 16 tested -->
+<section class="slide light" id="tested" data-notes="Be precise about status. The training, the NVFlare simulator, and a full provisioned run with certificates have all run. The Docker files and the Sparks themselves have not, because there was no Docker or Spark hardware on the build machine. Those are the first things to do on real hardware.">
+  <p class="eyebrow">Status</p>
+  <h2>What has run, and what has not</h2>
+  <table style="margin-top:16px" data-step>
+    <tr><th style="width:74%">Piece</th><th style="width:26%">Status</th></tr>
+    <tr><td>Comparison: alone vs swarm/FedAvg vs pooled, 5 runs</td><td><span class="pill ok">Ran</span></td></tr>
+    <tr><td>NVFlare simulator, swarm and FedAvg, with and without noise</td><td><span class="pill ok">Ran</span></td></tr>
+    <tr><td>Certificates, coordinator and 3 hospital processes over mTLS, one-command demo</td><td><span class="pill ok">Ran</span></td></tr>
+    <tr><td>Docker image, single-Spark compose, per-site launcher</td><td><span class="pill todo">Not yet run</span></td></tr>
+    <tr><td>DGX Spark hardware and the NGC base image on ARM64</td><td><span class="pill todo">Not yet run</span></td></tr>
+  </table>
+</section>
+
+<!-- 17 next -->
+<section class="slide light" id="nextsteps"data-notes="Next steps map onto the work packages. The site ETL and the variable list belong to WP2. Privacy accounting and secure aggregation strengthen the governance case in WP1. Running on real Sparks at the three hospitals is the follow-on project, once governance and ethics allow real data.">
+  <p class="eyebrow">Next steps</p>
+  <h2>Toward the follow-on project</h2>
+  <div class="row" style="margin-top:32px">
+    <div class="card" data-step><h3>Real data path</h3><p class="body">ETL from SWIBREG and NorIBD exports into OMOP; agree the outcome and variable list, including sex-disaggregated variables (WP2).</p></div>
+    <div class="card" data-step><h3>Stronger privacy</h3><p class="body">A privacy accountant to report ε; secure aggregation or homomorphic encryption (WP1, WP2).</p></div>
+    <div class="card" data-step><h3>Real Sparks</h3><p class="body">Run at Region Östergötland, Örebro and OUS once governance and ethics approval allow real data.</p></div>
+  </div>
+</section>
+
+<!-- 18 close -->
+<section class="slide accent" id="close" data-notes="Close on the two numbers: zero records moved, 70 percent of the pooling gain. Point people to the repository: the README, SPARKS.md for installation, and the one-command demo.">
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:40px">
+    <p class="eyebrow" style="color:#CFE3F8">ANCHOR-IBD · Proof of concept</p>
+    <h1 style="width:1500px">Zero patient records moved. One shared model.</h1>
+    <p class="lead" style="color:#E2EDF9;width:1400px">Three hospitals, two countries, no central model holder, about 70% of the gain from pooling.</p>
+    <p class="body" style="color:#CFE3F8">Repository: <code>anchor-ibd-fl-poc</code> · README.md · SPARKS.md · <code>bash demo/run_demo.sh</code></p>
+  </div>
+</section>
+
+</div></div>
+
+<div id="notes" hidden></div>
+<nav id="bar" aria-label="Presentation controls">
+  <button id="prev" aria-label="Previous slide">←</button>
+  <span id="counter">1 / 18</span>
+  <button id="next" aria-label="Next slide">→</button>
+  <div id="progress"><i></i></div>
+  <button id="notesBtn" class="hide-sm" aria-pressed="false">Notes (N)</button>
+  <button id="fsBtn" class="hide-sm">Full screen (F)</button>
+</nav>
+
+<script>
+// ---------- data from results/results.json and a real run of demo/run_demo.sh
+const H = {
+  pooled: [.692,.711,.715,.718,.719,.721,.723,.725,.726,.727,.727,.727,.727,.727,.728,.728,.728,.729,.728,.729,.73,.73,.731,.731,.731,.732,.733,.733,.733,.733],
+  rost: [.672,.694,.7,.704,.706,.709,.711,.713,.714,.716,.717,.718,.718,.719,.72,.721,.721,.722,.722,.723,.723,.724,.725,.726,.726,.726,.727,.727,.728,.728],
+  oru: [.705,.729,.734,.736,.737,.74,.741,.743,.744,.745,.746,.745,.745,.746,.746,.747,.747,.748,.747,.749,.749,.75,.751,.751,.751,.752,.753,.753,.754,.754],
+  ous: [.677,.692,.697,.7,.702,.704,.705,.706,.706,.705,.704,.704,.703,.703,.702,.702,.702,.702,.701,.701,.702,.702,.701,.702,.701,.702,.702,.703,.703,.703],
+};
+const RES = { // AUROC: alone, swarm (FedAvg math), pooled
+  "Östergötland": [.703, .720, .729], "Örebro": [.739, .747, .752], "Oslo": [.699, .704, .704], "All hospitals": [.714, .728, .734],
+};
+const SEX = {Women: [.721, .740, .747], Men: [.706, .716, .719]};
+const DP = [[0, .728], [.05, .727], [.1, .711], [.2, .687]];
+const LOG = [
+  ["h", "== 1. Synthetic OMOP extract per hospital"],
+  ["", "   rost  Region Östergötland (SWIBREG): 600 patients"],
+  ["", "   oru   Örebro University Hospital (SWIBREG): 450"],
+  ["", "   ous   Oslo University Hospital (NorIBD): 350"],
+  ["h", "== 2. Certificates per participant (mutual TLS)"],
+  ["d", "   kits: admin@rise.se  coordinator  rost  oru  ous"],
+  ["h", "== 3. Coordinator up (no data, no weights)"],
+  ["h", "== 4. Hospital clients, each with its own kit"],
+  ["g", "   Successfully registered client:rost"],
+  ["g", "   Successfully registered client:oru"],
+  ["g", "   Successfully registered client:ous"],
+  ["h", "== 5. RISE admin submits the swarm job (5 rounds)"],
+  ["d", "   job id: de3768ee-96ad-4103-9d39-e4eabd2e198a"],
+  ["h", "== 6. Train locally, one hospital averages per round"],
+  ["b", "   round 0: averaged at rost"],
+  ["", "      AUROC  oru 0.624  ous 0.551  rost 0.505"],
+  ["b", "   round 1: averaged at rost"],
+  ["", "      AUROC  oru 0.693  ous 0.638  rost 0.677"],
+  ["b", "   round 2: averaged at ous"],
+  ["", "      AUROC  oru 0.701  ous 0.677  rost 0.720"],
+  ["b", "   round 3: averaged at rost"],
+  ["", "      AUROC  oru 0.715  ous 0.694  rost 0.745"],
+  ["b", "   round 4: averaged at ous"],
+  ["", "      AUROC  oru 0.719  ous 0.698  rost 0.752"],
+  ["h", "== 7. What the coordinator did"],
+  ["g", "   aggregation steps at the coordinator: 0"],
+  ["g", "   patient records sent: 0"],
+];
+const C = {swarm: "#1F5FAE", swarmD: "#6FAEF2", local: "#D9622B", pooled: "#13966A", grid: "#D9E0DB", gridD: "#24434D", text2: "#44525A", text3: "#6A777D", ink: "#16282E"};
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const ns = "http://www.w3.org/2000/svg";
+const E = (tag, attrs, parent) => { const e = document.createElementNS(ns, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+const T = (parent, x, y, str, attrs) => { const e = E("text", Object.assign({x, y}, attrs || {}), parent); e.textContent = str; return e; };
+
+// ---------- slide engine
+const slides = [...document.querySelectorAll(".slide")];
+const stage = document.getElementById("stage"), vp = document.getElementById("viewport");
+let cur = 0;
+function fit() {
+  const s = Math.min(vp.clientWidth / 1920, vp.clientHeight / 1080);
+  stage.style.transform = `scale(${s})`;
+  stage.style.left = (vp.clientWidth - 1920 * s) / 2 + "px";
+  stage.style.top = (vp.clientHeight - 1080 * s) / 2 + "px";
+}
+addEventListener("resize", fit); fit();
+const enterHooks = {}, leaveHooks = {};
+let buildTimers = [];
+function go(i) {
+  i = Math.max(0, Math.min(slides.length - 1, i));
+  const prev = slides[cur];
+  if (prev && prev !== slides[i]) { prev.classList.remove("on"); (leaveHooks[prev.id] || (() => {}))(); }
+  buildTimers.forEach(clearTimeout); buildTimers = [];
+  cur = i;
+  const s = slides[i];
+  s.classList.add("on");
+  s.querySelectorAll("[data-step]").forEach((el, k) => {
+    el.classList.remove("in");
+    buildTimers.push(setTimeout(() => el.classList.add("in"), reduce ? 0 : 250 + k * 280));
+  });
+  (enterHooks[s.id] || (() => {}))(s);
+  document.getElementById("counter").textContent = `${i + 1} / ${slides.length}`;
+  document.querySelector("#progress i").style.width = `${(i + 1) / slides.length * 100}%`;
+  const notes = document.getElementById("notes");
+  notes.innerHTML = `<b>Speaker notes · ${i + 1}</b>${s.dataset.notes || ""}`;
+  try { history.replaceState(null, "", "#" + s.id); } catch (e) {}
+}
+document.getElementById("prev").onclick = () => go(cur - 1);
+document.getElementById("next").onclick = () => go(cur + 1);
+const notesBtn = document.getElementById("notesBtn");
+function toggleNotes() { const n = document.getElementById("notes"); n.hidden = !n.hidden; notesBtn.setAttribute("aria-pressed", String(!n.hidden)); }
+notesBtn.onclick = toggleNotes;
+function toggleFs() { try { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(() => {}); } catch (e) {} }
+document.getElementById("fsBtn").onclick = toggleFs;
+addEventListener("keydown", e => {
+  if (e.target.closest && e.target.closest("button") && (e.key === " " || e.key === "Enter")) return;
+  if (["ArrowRight", "PageDown", " "].includes(e.key)) { e.preventDefault(); go(cur + 1); }
+  else if (["ArrowLeft", "PageUp"].includes(e.key)) { e.preventDefault(); go(cur - 1); }
+  else if (e.key === "Home") go(0); else if (e.key === "End") go(slides.length - 1);
+  else if (e.key === "n" || e.key === "N") toggleNotes();
+  else if (e.key === "f" || e.key === "F") toggleFs();
+});
+stage.addEventListener("click", e => {
+  if (e.target.closest("button")) return;
+  const r = stage.getBoundingClientRect();
+  go(e.clientX - r.left > r.width * 0.3 ? cur + 1 : cur - 1);
+});
+let tx = null;
+stage.addEventListener("touchstart", e => { tx = e.touches[0].clientX; }, {passive: true});
+stage.addEventListener("touchend", e => { if (tx == null) return; const dx = e.changedTouches[0].clientX - tx; if (Math.abs(dx) > 40) go(dx < 0 ? cur + 1 : cur - 1); tx = null; });
+
+// ---------- swarm animation (used on cover, live slide, and the comparison)
+const NAMES = ["Östergötland", "Örebro", "Oslo"], KEYS = ["rost", "oru", "ous"], REG = ["SWIBREG", "SWIBREG", "NorIBD"];
+const AGG = Array.from({length: 31}, (_, r) => {
+  let x = (Math.imul(r, 0x9E3779B1) + 0x7F4A7C15) >>> 0;
+  x = Math.imul(x ^ (x >>> 15), 0x2C1B3C6D) >>> 0;
+  x = Math.imul(x ^ (x >>> 12), 0x297A2D39) >>> 0;
+  return ((x ^ (x >>> 15)) >>> 0) % 3;
+});
+function makeSwarm(svg) {
+  const mode = svg.dataset.mode, W = +svg.getAttribute("width"), Hh = +svg.getAttribute("height");
+  const full = mode === "full", mini = mode === "mini", hub = mode === "hub", small = hub || mode === "pair";
+  const BW = full ? 300 : 0, BH = full ? 180 : 0, R0 = small ? 46 : 58;
+  const N = full ? [{x: 210, y: 360}, {x: 790, y: 360}, {x: 500, y: 650}]
+    : small ? [{x: 130, y: 200}, {x: 670, y: 200}, {x: 400, y: 290}] :[{x: 150, y: 300}, {x: 610, y: 300}, {x: 380, y: 580}];
+  const co = full ? {x: 500, y: 108} : small ? {x: 400, y: 70} : {x: 380, y: 72};
+  // coordinator / server
+  const cw = full ? 340 : small ? 260 : 260, chh = full ? 76 : 64;
+  E("rect", {x: co.x - cw / 2, y: co.y - chh / 2, width: cw, height: chh, rx: 12, fill: hub ? "#1F4A6E" : "none", stroke: hub ? "#6FAEF2" : "#3A5C68", "stroke-width": hub ? 3 : 2, "stroke-dasharray": hub ? "" : "8 6"}, svg);
+  T(svg, co.x, co.y + (full ? -4 : 9), hub ? "Central server" : "Coordinator", {"text-anchor": "middle", "font-size": full ? 26 : 24, fill: hub ? "#E8EEEA" : "#B9C9CC"});
+  if (full) T(svg, co.x, co.y + 26, "starts jobs · holds no weights", {"text-anchor": "middle", "font-size": 24, fill: "#8FA5AA"});
+  N.forEach(n => E("line", {x1: co.x, y1: co.y + chh / 2, x2: n.x, y2: n.y - (full ? BH / 2 : R0), stroke: hub ? "#3F7FB8" : "#24434D", "stroke-width": hub ? 4 : 2, "stroke-dasharray": hub ? "" : "4 8"}, svg));
+  const links = [];
+  if (!hub) for (let i = 0; i < 3; i++) for (let j = i + 1; j < 3; j++) links.push({i, j, el: E("line", {x1: N[i].x, y1: N[i].y, x2: N[j].x, y2: N[j].y, stroke: "#2E5260", "stroke-width": full ? 5 : 4}, svg)});
+  const rings = N.map(n => E("circle", {cx: n.x, cy: n.y, r: R0, fill: "none", stroke: "#6FAEF2", "stroke-width": 3, opacity: 0}, svg));
+  const boxes = N.map(n => full
+    ? E("rect", {x: n.x - BW / 2, y: n.y - BH / 2, width: BW, height: BH, rx: 18, fill: "#173640", stroke: "#3A5C68", "stroke-width": 3}, svg)
+    : E("circle", {cx: n.x, cy: n.y, r: R0, fill: "#173640", stroke: "#3A5C68", "stroke-width": 3}, svg));
+  const role = [], score = [];
+  N.forEach((n, i) => {
+    if (full) {
+      T(svg, n.x, n.y - 42, NAMES[i], {"text-anchor": "middle", "font-size": 32, "font-weight": 600, fill: "#E8EEEA"});
+      T(svg, n.x, n.y - 6, "DGX Spark · " + REG[i], {"text-anchor": "middle", "font-size": 24, fill: "#8FA5AA"});
+      role.push(T(svg, n.x, n.y + 32, "", {"text-anchor": "middle", "font-size": 24, fill: "#B9C9CC"}));
+      score.push(T(svg, n.x, n.y + 70, "", {"text-anchor": "middle", "font-size": 30, "font-weight": 600, fill: "#E8EEEA"}));
+    } else T(svg, n.x, n.y + R0 + 40, NAMES[i], {"text-anchor": "middle", "font-size": 26, fill: "#E8EEEA"});
+  });
+  const dots = N.map(() => E("circle", {r: full ? 12 : 10, fill: "#6FAEF2", opacity: 0}, svg));
+  const label = full ? T(svg, 40, 800, "", {"font-size": 28, fill: "#E8EEEA"}) : null;
+  let r = 1, t0 = 0, paused = false, running = false, raf = 0, pt = 0;
+  const D = full ? 1500 : 2400;
+  function paint(t) {
+    const a = hub ? -1 : AGG[r];
+    const target = hub ? co : N[a];
+    boxes.forEach((b, i) => { b.setAttribute("fill", i === a ? "#1F4A6E" : "#173640"); b.setAttribute("stroke", i === a ? "#6FAEF2" : "#3A5C68"); });
+    links.forEach(l => l.el.setAttribute("stroke", (l.i === a || l.j === a) ? "#3F7FB8" : "#2E5260"));
+    if (full) {
+      role.forEach((e, i) => e.textContent = i === a ? "Averaging this round" : "Training locally");
+      score.forEach((e, i) => e.textContent = "AUROC " + H[KEYS[i]][r - 1].toFixed(3));
+      label.textContent = `Round ${r} of 30 · averaged at ${NAMES[a]}`;
+    }
+    const tr = full ? 0 : 0.25;  // share of the round spent training (rings)
+    rings.forEach(g => { if (t < tr) { const u = t / tr; g.setAttribute("r", R0 + u * 36); g.setAttribute("opacity", (1 - u) * .8); } else g.setAttribute("opacity", 0); });
+    N.forEach((n, i) => {
+      const d = dots[i];
+      if (i === a || t < tr || t > 0.94) { d.setAttribute("opacity", 0); return; }
+      const span = (0.94 - tr) / 2, inb = t < tr + span, u = inb ? (t - tr) / span : (t - tr - span) / span;
+      const A = inb ? n : target, B = inb ? target : n, v = 0.22 + 0.56 * Math.min(1, u);
+      d.setAttribute("cx", A.x + (B.x - A.x) * v); d.setAttribute("cy", A.y + (B.y - A.y) * v);
+      d.setAttribute("fill", inb ? "#9FB3B8" : "#6FAEF2"); d.setAttribute("opacity", 1);
+    });
+  }
+  function frame(now) {
+    if (!running) return;
+    if (!t0) t0 = now;
+    let t = paused ? pt : (now - t0) / D;
+    if (t >= 1) { t0 = now; t = 0; r = r >= 30 ? 1 : r + 1; }
+    if (!paused) pt = t;
+    paint(t);
+    raf = requestAnimationFrame(frame);
+  }
+  const api = {
+    start() { if (running) return; running = true; t0 = 0; if (reduce) { paused = true; pt = 0.5; } raf = requestAnimationFrame(frame); },
+    stop() { running = false; cancelAnimationFrame(raf); },
+    toggle() { paused = !paused; if (!paused) t0 = performance.now() - pt * D; return paused; },
+    step() { paused = true; r = r >= 30 ? 1 : r + 1; pt = 0.5; paint(pt); },
+  };
+  paint(0.5);
+  return api;
+}
+const swarms = {};
+document.querySelectorAll("svg.swarm").forEach(svg => {
+  const sec = svg.closest(".slide").id;
+  (swarms[sec] = swarms[sec] || []).push(makeSwarm(svg));
+});
+Object.keys(swarms).forEach(id => {
+  enterHooks[id] = () => swarms[id].forEach(s => s.start());
+  leaveHooks[id] = () => swarms[id].forEach(s => s.stop());
+});
+const tog = document.querySelector("[data-swarm-toggle]");
+tog.onclick = () => { tog.textContent = swarms.swarm[0].toggle() ? "Play" : "Pause"; };
+document.querySelector("[data-swarm-step]").onclick = () => { swarms.swarm[0].step(); tog.textContent = "Play"; };
+
+// ---------- count-up numbers
+enterHooks.problem = s => s.querySelectorAll("[data-count]").forEach((el, k) => {
+  const to = +el.dataset.count, t0 = performance.now() + 250 + k * 280, D = 900;
+  if (reduce) { el.textContent = to.toLocaleString("en"); return; }
+  el.textContent = "0";
+  const f = now => { const u = Math.max(0, Math.min(1, (now - t0) / D)); el.textContent = Math.round(to * (1 - Math.pow(1 - u, 3))).toLocaleString("en"); if (u < 1 && s.classList.contains("on")) requestAnimationFrame(f); };
+  requestAnimationFrame(f);
+});
+
+// ---------- grouped bars (results) and sex bars
+function bars(svg, data, opts) {
+  svg.innerHTML = "";
+  const W = +svg.getAttribute("width"), Hh = +svg.getAttribute("height"), m = {l: 70, r: 10, t: 30, b: 56};
+  const lo = 0.5, hi = 0.8, y = v => m.t + (1 - (v - lo) / (hi - lo)) * (Hh - m.t - m.b);
+  for (let v = lo; v <= hi + 1e-9; v += 0.1) {
+    E("line", {x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: C.grid}, svg);
+    T(svg, m.l - 12, y(v) + 8, v.toFixed(1), {"text-anchor": "end", "font-size": 24, fill: C.text3});
+  }
+  const groups = Object.keys(data), gw = (W - m.l - m.r) / groups.length, bw = opts.bw, cols = [C.local, C.swarm, C.pooled];
+  const all = [];
+  groups.forEach((g, gi) => {
+    const x0 = m.l + gi * gw + (gw - (bw * 3 + 8)) / 2;
+    T(svg, m.l + gi * gw + gw / 2, Hh - 14, g, {"text-anchor": "middle", "font-size": 26, fill: C.ink});
+    data[g].forEach((v, si) => {
+      const x = x0 + si * (bw + 4), base = y(lo);
+      const rect = E("rect", {x, y: base, width: bw, height: 0, rx: 4, fill: cols[si]}, svg);
+      const lab = T(svg, x + bw / 2, y(v) - 10, v.toFixed(3).slice(1), {"text-anchor": "middle", "font-size": 24, fill: si === 1 ? C.ink : C.text2, "font-weight": si === 1 ? 600 : 400, opacity: 0});
+      all.push({rect, lab, v, base, delay: gi * 160 + si * 70});
+    });
+  });
+  E("line", {x1: m.l, x2: W - m.r, y1: y(lo), y2: y(lo), stroke: "#9AA8A3", "stroke-width": 2}, svg);
+  const t0 = performance.now();
+  const f = now => {
+    let done = true;
+    all.forEach(b => {
+      const u = reduce ? 1 : Math.max(0, Math.min(1, (now - t0 - b.delay) / 700)), e = 1 - Math.pow(1 - u, 3);
+      const top = b.base - (b.base - y(b.v)) * e;
+      b.rect.setAttribute("y", top); b.rect.setAttribute("height", b.base - top);
+      b.lab.setAttribute("opacity", u >= 1 ? 1 : 0);
+      if (u < 1) done = false;
+    });
+    if (!done) requestAnimationFrame(f);
+  };
+  requestAnimationFrame(f);
+}
+enterHooks.results = () => bars(document.getElementById("barsChart"), RES, {bw: 70});
+enterHooks.fairness = () => {
+  bars(document.getElementById("sexChart"), SEX, {bw: 90});
+  dpChart(document.getElementById("dpChart"));
+};
+
+// ---------- privacy trade-off
+function dpChart(svg) {
+  svg.innerHTML = "";
+  const W = 796, Hh = 420, m = {l: 70, r: 150, t: 30, b: 70}, lo = 0.65, hi = 0.75;
+  const x = z => m.l + z / 0.2 * (W - m.l - m.r), y = v => m.t + (1 - (v - lo) / (hi - lo)) * (Hh - m.t - m.b);
+  for (let v = lo; v <= hi + 1e-9; v += 0.05) { E("line", {x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: C.grid}, svg); T(svg, m.l - 12, y(v) + 8, v.toFixed(2), {"text-anchor": "end", "font-size": 24, fill: C.text3}); }
+  DP.forEach(([z]) => T(svg, x(z), Hh - 36, z, {"text-anchor": "middle", "font-size": 24, fill: C.text3}));
+  T(svg, (m.l + W - m.r) / 2, Hh - 4, "Noise multiplier", {"text-anchor": "middle", "font-size": 24, fill: C.text2});
+  [[.714, C.local, "Alone"], [.734, C.pooled, "Pooled"]].forEach(([v, c, l]) => {
+    E("line", {x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: c, "stroke-width": 3, "stroke-dasharray": "8 8"}, svg);
+    T(svg, W - m.r + 12, y(v) + 8, l, {"font-size": 24, fill: C.text2});
+  });
+  const d = DP.map(([z, v], i) => `${i ? "L" : "M"}${x(z)},${y(v)}`).join("");
+  const path = E("path", {d, fill: "none", stroke: C.swarm, "stroke-width": 4}, svg);
+  const len = path.getTotalLength(); path.style.strokeDasharray = len; path.style.strokeDashoffset = reduce ? 0 : len;
+  path.getBoundingClientRect(); path.style.transition = "stroke-dashoffset 1.2s ease .3s"; path.style.strokeDashoffset = 0;
+  DP.forEach(([z, v]) => E("circle", {cx: x(z), cy: y(v), r: 8, fill: C.swarm, stroke: "#F4F6F2", "stroke-width": 3}, svg));
+  T(svg, x(0.2) + 12, y(DP[3][1]) + 8, "Swarm", {"font-size": 24, "font-weight": 600, fill: C.ink});
+}
+
+// ---------- learning curve (dark slide)
+enterHooks.curve = () => {
+  const svg = document.getElementById("curveChart"); svg.innerHTML = "";
+  const W = 1664, Hh = 640, m = {l: 80, r: 230, t: 20, b: 70}, lo = 0.66, hi = 0.76, NR = 30;
+  const x = r => m.l + (r - 1) / (NR - 1) * (W - m.l - m.r), y = v => m.t + (1 - (v - lo) / (hi - lo)) * (Hh - m.t - m.b);
+  for (let v = lo; v <= hi + 1e-9; v += 0.02) { E("line", {x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: C.gridD}, svg); T(svg, m.l - 14, y(v) + 8, v.toFixed(2), {"text-anchor": "end", "font-size": 24, fill: "#8FA5AA"}); }
+  [1, 5, 10, 15, 20, 25, 30].forEach(r => T(svg, x(r), Hh - 34, r, {"text-anchor": "middle", "font-size": 24, fill: "#8FA5AA"}));
+  T(svg, (m.l + W - m.r) / 2, Hh - 2, "Round", {"text-anchor": "middle", "font-size": 24, fill: "#B9C9CC"});
+  const labels = [];
+  [[.714, "#E07A45", "Alone"], [.734, "#3DBE8B", "Pooled"]].forEach(([v, c, l]) => {
+    E("line", {x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: c, "stroke-width": 3, "stroke-dasharray": "10 10"}, svg);
+    labels.push({y: y(v), t: l, fill: "#B9C9CC", w: 400});
+  });
+  const paths = [];
+  KEYS.forEach((k, i) => { paths.push(E("path", {d: H[k].map((v, r) => `${r ? "L" : "M"}${x(r + 1)},${y(v)}`).join(""), fill: "none", stroke: "#5D7A82", "stroke-width": 3}, svg)); labels.push({y: y(H[k][29]), t: NAMES[i], fill: "#8FA5AA", w: 400}); });
+  paths.push(E("path", {d: H.pooled.map((v, r) => `${r ? "L" : "M"}${x(r + 1)},${y(v)}`).join(""), fill: "none", stroke: "#6FAEF2", "stroke-width": 6}, svg));
+  labels.push({y: y(H.pooled[29]), t: "All hospitals", fill: "#E8EEEA", w: 600});
+  labels.sort((a, b) => a.y - b.y);
+  for (let i = 1; i < labels.length; i++) labels[i].y = Math.max(labels[i].y, labels[i - 1].y + 30);
+  const lt = labels.map(l => T(svg, W - m.r + 16, l.y + 8, l.t, {"font-size": 24, fill: l.fill, "font-weight": l.w, opacity: 0}));
+  const dot = E("circle", {r: 10, fill: "#6FAEF2", stroke: "#10242B", "stroke-width": 3}, svg);
+  const rl = T(svg, m.l + 10, m.t + 30, "", {"font-size": 28, fill: "#E8EEEA", "font-weight": 600});
+  const lens = paths.map(p => p.getTotalLength());
+  const t0 = performance.now(), D = reduce ? 1 : 3200;
+  const f = now => {
+    const u = Math.min(1, (now - t0) / D);
+    paths.forEach((p, i) => { p.style.strokeDasharray = lens[i]; p.style.strokeDashoffset = lens[i] * (1 - u); });
+    const r = Math.max(1, Math.round(1 + u * 29));
+    dot.setAttribute("cx", x(r)); dot.setAttribute("cy", y(H.pooled[r - 1]));
+    rl.textContent = `Round ${r} · all hospitals AUROC ${H.pooled[r - 1].toFixed(3)}`;
+    if (u >= 1) lt.forEach(t => t.setAttribute("opacity", 1));
+    if (u < 1 && document.getElementById("curve").classList.contains("on")) requestAnimationFrame(f);
+    else lt.forEach(t => t.setAttribute("opacity", 1));
+  };
+  requestAnimationFrame(f);
+};
+
+// ---------- terminal replay
+let termTimer = null;
+enterHooks.demo = () => {
+  const out = document.getElementById("termOut"); out.innerHTML = "";
+  clearInterval(termTimer);
+  let i = 0;
+  const add = () => {
+    if (i >= LOG.length) { clearInterval(termTimer); return; }
+    const [cls, line] = LOG[i++];
+    const span = document.createElement("span"); if (cls) span.className = cls; span.textContent = line + "\n";
+    out.appendChild(span);
+    out.scrollTop = out.scrollHeight;
+  };
+  if (reduce) { while (i < LOG.length) add(); return; }
+  termTimer = setInterval(add, 330);
+};
+leaveHooks.demo = () => clearInterval(termTimer);
+
+// ---------- start at the slide named in the link, if any
+const start = slides.findIndex(s => "#" + s.id === location.hash);
+go(start >= 0 ? start : 0);
+</script>
+</body>
+</html>

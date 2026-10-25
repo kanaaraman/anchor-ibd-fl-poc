@@ -1,0 +1,36 @@
+# Step 1 of the rollout: all four roles on ONE DGX Spark, each in its own
+# container, each hospital container seeing only its own data folder.
+# Same certificates, same job, same code as the multi-Spark setup.
+#
+#   nvflare provision -p deploy/project.yml -w deploy/workspace
+#   python generate_data.py --out data
+#   KIT=deploy/workspace/anchor_ibd/prod_00 docker compose -f deploy/docker-compose.yml up -d --build
+#
+# Drop the `deploy:` GPU blocks to run on a machine without an NVIDIA GPU.
+x-client: &client
+  image: anchor-ibd-fl
+  depends_on: [anchor-fl-server]
+  restart: unless-stopped
+  deploy:
+    resources:
+      reservations:
+        devices: [{driver: nvidia, count: all, capabilities: [gpu]}]
+
+services:
+  anchor-fl-server:
+    build: {context: .., dockerfile: deploy/Dockerfile}
+    image: anchor-ibd-fl
+    hostname: anchor-fl-server
+    volumes: ["../${KIT}/anchor-fl-server:/workspace/kit"]
+    ports: ["8002:8002", "8003:8003"]
+    restart: unless-stopped
+
+  rost:
+    <<: *client
+    volumes: ["../${KIT}/rost:/workspace/kit", "../data/rost:/data/rost:ro"]
+  oru:
+    <<: *client
+    volumes: ["../${KIT}/oru:/workspace/kit", "../data/oru:/data/oru:ro"]
+  ous:
+    <<: *client
+    volumes: ["../${KIT}/ous:/workspace/kit", "../data/ous:/data/ous:ro"]
