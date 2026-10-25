@@ -1,0 +1,238 @@
+{
+  "_about": "Published figures the synthetic generator is calibrated to and validated against. status: verified = number checked against the paper or its abstract; provisional = number seen only in a secondary source, verify before relying on it; assumption = no published figure found, value chosen by the PoC team. Only verified and provisional targets are checked by validate.py; assumptions are reported but not scored.",
+  "targets": [
+    {
+      "id": "ous_cd_share",
+      "what": "Share of Crohn's disease among CD+UC, Oslo (inception cohort)",
+      "sites": [
+        "ous"
+      ],
+      "subgroup": {},
+      "metric": "share_cd",
+      "target": 0.367,
+      "tolerance": 0.03,
+      "status": "verified",
+      "source": "IBSEN III baseline: 626 CD, 1,082 UC (Scand J Gastroenterol 2021;56:899-905, PMID 34154494)",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/34154494/",
+      "note": "626 / (626 + 1,082). IBD-unclassified (71) excluded because the generator has no IBD-U."
+    },
+    {
+      "id": "ous_uc_female",
+      "what": "Share of women among UC patients, Oslo",
+      "sites": [
+        "ous"
+      ],
+      "subgroup": {
+        "dx": "UC"
+      },
+      "metric": "share_female",
+      "target": 0.459,
+      "tolerance": 0.035,
+      "status": "provisional",
+      "source": "IBSEN III UC subset, ECCO congress abstract P353 (889 adult UC patients)",
+      "url": "https://ecco-ibd.eu/publications/congress-abstracts/item/p353-ulcerative-colitis-in-the-ibsen-iii-study-frequent-use-of-biologics-and-low-colectomy-rates-first-year-of-disease.html",
+      "note": "Figure taken from a search-engine extract of the abstract; the abstract page returned 404 when checked. Verify."
+    },
+    {
+      "id": "ous_uc_smokers",
+      "what": "Share of current smokers among UC patients, Oslo",
+      "sites": [
+        "ous"
+      ],
+      "subgroup": {
+        "dx": "UC"
+      },
+      "metric": "share_smoker",
+      "target": 0.062,
+      "tolerance": 0.025,
+      "status": "provisional",
+      "source": "IBSEN III UC subset, ECCO congress abstract P353",
+      "url": "https://ecco-ibd.eu/publications/congress-abstracts/item/p353-ulcerative-colitis-in-the-ibsen-iii-study-frequent-use-of-biologics-and-low-colectomy-rates-first-year-of-disease.html",
+      "note": "As above: secondary extract, verify."
+    },
+    {
+      "id": "uc_vdz_cr52",
+      "what": "UC, vedolizumab, no prior anti-TNF: clinical remission at week 52",
+      "sites": [
+        "rost",
+        "oru",
+        "ous"
+      ],
+      "subgroup": {
+        "dx": "UC",
+        "drug": "vedolizumab",
+        "prior_anti_tnf": 0
+      },
+      "metric": "response_rate",
+      "target": 0.313,
+      "tolerance": 0.04,
+      "status": "verified",
+      "source": "VARSITY: vedolizumab vs adalimumab in UC, 769 patients (Sands et al., N Engl J Med 2019;381:1215-1226)",
+      "url": "https://science.rsu.lv/en/publications/vedolizumab-versus-adalimumab-for-moderate-to-severe-ulcerative-c/",
+      "note": "Trial population, moderate-to-severe UC; up to 25% could have had a non-adalimumab anti-TNF. Applied to the generator's anti-TNF-naive UC patients."
+    },
+    {
+      "id": "uc_ada_cr52",
+      "what": "UC, adalimumab, no prior anti-TNF: clinical remission at week 52",
+      "sites": [
+        "rost",
+        "oru",
+        "ous"
+      ],
+      "subgroup": {
+        "dx": "UC",
+        "drug": "adalimumab",
+        "prior_anti_tnf": 0
+      },
+      "metric": "response_rate",
+      "target": 0.225,
+      "tolerance": 0.04,
+      "status": "verified",
+      "source": "VARSITY (Sands et al., N Engl J Med 2019)",
+      "url": "https://science.rsu.lv/en/publications/vedolizumab-versus-adalimumab-for-moderate-to-severe-ulcerative-c/",
+      "note": "As above."
+    },
+    {
+      "id": "uc_ifx_cr54",
+      "what": "UC, infliximab, no prior anti-TNF: clinical remission at week 54",
+      "sites": [
+        "rost",
+        "oru",
+        "ous"
+      ],
+      "subgroup": {
+        "dx": "UC",
+        "drug": "infliximab",
+        "prior_anti_tnf": 0
+      },
+      "metric": "response_rate",
+      "target": 0.347,
+      "tolerance": 0.04,
+      "status": "provisional",
+      "source": "ACT 1, infliximab 5 mg/kg (Rutgeerts et al., N Engl J Med 2005), as tabulated in a 2015 review",
+      "url": "https://wjgnet.com/2150-5330/tables/v6/i4/219.htm",
+      "note": "Week 54, not 52. The NEJM abstract reports response, not remission; the remission figure comes from a review table. Verify against the paper."
+    },
+    {
+      "id": "cd_ust_cr52",
+      "what": "Crohn's, ustekinumab, no prior anti-TNF: clinical remission at week 52",
+      "sites": [
+        "rost",
+        "oru",
+        "ous"
+      ],
+      "subgroup": {
+        "dx": "CD",
+        "drug": "ustekinumab",
+        "prior_anti_tnf": 0
+      },
+      "metric": "response_rate",
+      "target": 0.65,
+      "tolerance": 0.04,
+      "status": "verified",
+      "source": "SEAVUE: ustekinumab vs adalimumab in biologic-naive Crohn's disease, 386 patients (Sands et al., Lancet 2022;399:2200-2211)",
+      "url": "https://cuk.elsevierpure.com/en/publications/ustekinumab-versus-adalimumab-for-induction-and-maintenance-thera/",
+      "note": "124/191. Trial population; the authors called the rates for both drugs unusually high."
+    },
+    {
+      "id": "cd_ada_cr52",
+      "what": "Crohn's, adalimumab, no prior anti-TNF: clinical remission at week 52",
+      "sites": [
+        "rost",
+        "oru",
+        "ous"
+      ],
+      "subgroup": {
+        "dx": "CD",
+        "drug": "adalimumab",
+        "prior_anti_tnf": 0
+      },
+      "metric": "response_rate",
+      "target": 0.61,
+      "tolerance": 0.04,
+      "status": "verified",
+      "source": "SEAVUE (Sands et al., Lancet 2022)",
+      "url": "https://cuk.elsevierpure.com/en/publications/ustekinumab-versus-adalimumab-for-induction-and-maintenance-thera/",
+      "note": "119/195."
+    },
+    {
+      "id": "uc_ust_cr_exposed",
+      "what": "UC, ustekinumab, prior anti-TNF: clinical remission",
+      "sites": [
+        "rost",
+        "oru",
+        "ous"
+      ],
+      "subgroup": {
+        "dx": "UC",
+        "drug": "ustekinumab",
+        "prior_anti_tnf": 1
+      },
+      "metric": "response_rate",
+      "target": 0.32,
+      "tolerance": 0.05,
+      "status": "verified",
+      "source": "SWIBREG real-world ustekinumab in UC, 133 patients, mostly biologic-experienced (United European Gastroenterol J 2022, PMC9486503)",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9486503",
+      "note": "Clinical remission at last follow-up (median 32 weeks), not week 52. Swedish registry data, the closest match to the PoC setting."
+    },
+    {
+      "id": "cd_ifx_cr52",
+      "what": "Crohn's, infliximab, no prior anti-TNF: clinical remission at week 52",
+      "sites": [
+        "rost",
+        "oru",
+        "ous"
+      ],
+      "subgroup": {
+        "dx": "CD",
+        "drug": "infliximab",
+        "prior_anti_tnf": 0
+      },
+      "metric": "response_rate",
+      "target": 0.61,
+      "tolerance": 0.04,
+      "status": "assumption",
+      "source": "No week-52 head-to-head figure found; set equal to adalimumab in SEAVUE",
+      "url": "",
+      "note": "Assumption: the two anti-TNFs perform alike in biologic-naive Crohn's."
+    },
+    {
+      "id": "cd_vdz_cr52",
+      "what": "Crohn's, vedolizumab, no prior anti-TNF: clinical remission at week 52",
+      "sites": [
+        "rost",
+        "oru",
+        "ous"
+      ],
+      "subgroup": {
+        "dx": "CD",
+        "drug": "vedolizumab",
+        "prior_anti_tnf": 0
+      },
+      "metric": "response_rate",
+      "target": 0.45,
+      "tolerance": 0.04,
+      "status": "assumption",
+      "source": "No comparable intention-to-treat week-52 figure found",
+      "url": "",
+      "note": "Assumption: lower than anti-TNF and ustekinumab in Crohn's, consistent with the direction in the literature."
+    },
+    {
+      "id": "swe_cd_share",
+      "what": "Share of Crohn's disease among biologic-treated patients, Swedish sites",
+      "sites": [
+        "rost",
+        "oru"
+      ],
+      "subgroup": {},
+      "metric": "share_cd",
+      "target": 0.52,
+      "tolerance": 0.04,
+      "status": "assumption",
+      "source": "No published split for biologic-treated SWIBREG patients found",
+      "url": "",
+      "note": "Assumption. Ask SWIBREG for the real figure."
+    }
+  ]
+}

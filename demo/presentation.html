@@ -115,7 +115,7 @@ svg text { font-family: var(--sans); }
     <div class="card" data-step><div class="big num" data-count="40000">40,000</div><p class="lead">people with IBD in Norway (NorIBD)</p></div>
     <div class="card inv" data-step><div class="big num" style="color:var(--swarm-dark)" data-count="140000">140,000</div><p class="lead" style="color:var(--on-dark)">together, about 40% more than Sweden alone</p></div>
   </div>
-  <p class="lead" data-step style="width:1560px">Treatment-response and subgroup studies are underpowered in each country, and patient data cannot simply be pooled across the border under GDPR, national law and EHDS.</p>
+  <p class="lead" data-step style="width:1560px">Treatment-response and subgroup studies are underpowered in each country, and patient data cannot simply be copied across the border under GDPR, national law and EHDS.</p>
   <div class="foot"><span>Source: ANCHOR-IBD project description (Vinnova 2026-00990), approximate figures</span></div>
 </section>
 
@@ -229,7 +229,7 @@ svg text { font-family: var(--sans); }
   <h2>Will this patient respond to this biologic?</h2>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:64px;margin-top:20px">
     <div style="display:flex;flex-direction:column;gap:28px">
-      <div data-step><p class="small">Outcome</p><p class="lead" style="color:var(--text)">Steroid-free clinical remission 52 weeks after starting the biologic</p></div>
+      <div data-step><p class="small">Outcome</p><p class="lead" style="color:var(--text)">Clinical remission 52 weeks after starting the biologic</p></div>
       <div data-step><p class="small">Biologics compared</p><p class="lead" style="color:var(--text)">Infliximab · adalimumab · vedolizumab · ustekinumab</p></div>
       <div data-step><p class="small">Model</p><p class="lead" style="color:var(--text)">Small neural network, 19 → 32 → 16 → 1, output = probability of response</p></div>
     </div>
@@ -246,36 +246,52 @@ svg text { font-family: var(--sans); }
   <p class="eyebrow">The data</p>
   <h2>Three synthetic cohorts, three case mixes</h2>
   <table style="margin-top:24px" data-step>
-    <tr><th style="width:34%">Hospital</th><th style="width:16%">Registry</th><th class="r" style="width:16%">Patients</th><th class="r" style="width:17%">Responders</th><th class="r" style="width:17%">Ustekinumab</th></tr>
-    <tr><td>Region Östergötland</td><td>SWIBREG (SE)</td><td class="r">600</td><td class="r">41%</td><td class="r">14%</td></tr>
-    <tr><td>Örebro University Hospital</td><td>SWIBREG (SE)</td><td class="r">450</td><td class="r">45%</td><td class="r">17%</td></tr>
-    <tr><td>Oslo University Hospital</td><td>NorIBD (NO)</td><td class="r">350</td><td class="r">52%</td><td class="r">46%</td></tr>
+    <tr><th style="width:34%">Hospital</th><th style="width:16%">Registry</th><th class="r" style="width:16%">Patients</th><th class="r" style="width:17%">Remission wk 52</th><th class="r" style="width:17%">Ustekinumab</th></tr>
+    <tr><td>Region Östergötland</td><td>SWIBREG (SE)</td><td class="r">600</td><td class="r">40%</td><td class="r">14%</td></tr>
+    <tr><td>Örebro University Hospital</td><td>SWIBREG (SE)</td><td class="r">450</td><td class="r">37%</td><td class="r">17%</td></tr>
+    <tr><td>Oslo University Hospital</td><td>NorIBD (NO)</td><td class="r">350</td><td class="r">48%</td><td class="r">46%</td></tr>
   </table>
-  <p class="lead" data-step style="width:1560px">Each site’s extract is generated on its own Spark. A further 3,000 new synthetic patients per site, never used in training, measure every result that follows.</p>
+  <p class="lead" data-step style="width:1560px">All patients are synthetic. Oslo follows the IBSEN III inception cohort (37% Crohn’s). A further 3,000 new synthetic patients per site, never used in training, measure every result that follows.</p>
+</section>
+
+<!-- 9b data validation -->
+<section class="slide light" id="realistic" data-notes="Be explicit: no real patient data is used anywhere. The patients come from a rule-based generator. Its Oslo case mix follows IBSEN III, and each drug's week-52 remission rate is calibrated to VARSITY, SEAVUE, ACT 1 or the Swedish SWIBREG ustekinumab study. Before calibration, every check failed: the first version roughly doubled trial remission rates. After calibration all nine scored checks pass. Two IBSEN III figures and the ACT 1 figure are provisional because they come from secondary sources. Matching averages does not make the patients real, so the AUROCs show that the federated machinery works, not that biologic response can be predicted this well in practice. Full details are in DATA.md.">
+  <p class="eyebrow">The data</p>
+  <h2>Synthetic patients, checked against published figures</h2>
+  <table style="margin-top:8px;font-size:24px" data-step>
+    <tr><th style="width:40%">Check</th><th style="width:22%">Published</th><th class="r" style="width:13%">Before</th><th class="r" style="width:13%">After</th><th style="width:12%">Figure</th></tr>
+    <tr><td>Oslo: share of Crohn’s</td><td>36.7% IBSEN III</td><td class="r" style="color:#B23A3A">45.0%</td><td class="r" style="color:#0E5E40">36.0%</td><td>verified</td></tr>
+    <tr><td>UC, vedolizumab: remission wk 52</td><td>31.3% VARSITY</td><td class="r" style="color:#B23A3A">70.2%</td><td class="r" style="color:#0E5E40">32.6%</td><td>verified</td></tr>
+    <tr><td>UC, adalimumab: remission wk 52</td><td>22.5% VARSITY</td><td class="r" style="color:#B23A3A">43.4%</td><td class="r" style="color:#0E5E40">23.9%</td><td>verified</td></tr>
+    <tr><td>Crohn’s, ustekinumab: remission wk 52</td><td>65% SEAVUE</td><td class="r" style="color:#B23A3A">50.9%</td><td class="r" style="color:#0E5E40">66.6%</td><td>verified</td></tr>
+    <tr><td>Crohn’s, adalimumab: remission wk 52</td><td>61% SEAVUE</td><td class="r" style="color:#B23A3A">36.7%</td><td class="r" style="color:#0E5E40">59.3%</td><td>verified</td></tr>
+    <tr><td>UC, ustekinumab after anti-TNF</td><td>32% SWIBREG</td><td class="r" style="color:#B23A3A">52.6%</td><td class="r" style="color:#0E5E40">31.1%</td><td>verified</td></tr>
+  </table>
+  <p class="body" data-step style="width:1600px">Before calibration 0 of 9 scored checks passed; after, 9 of 9. Three more (UC women and smokers in IBSEN III, infliximab in ACT 1) pass but come from secondary sources. No real patient data is used; the results show the federated machinery works, not real-world accuracy.</p>
 </section>
 
 <!-- 10 results -->
-<section class="slide light" id="results" data-notes="The headline result. On 3,000 new patients per hospital, training together beats training alone at every site, and gets close to the pooled ceiling, which in reality is not allowed. Overall: 0.714 alone, 0.728 together, 0.734 pooled. That is about 70 percent of the possible gain, with zero records moved. The gain is modest because cohorts are small and the model is simple; say so.">
+<section class="slide light" id="results" data-notes="The headline result. On 3,000 new patients per hospital, training together beats training alone at every site, and gets close to the ceiling of copying all records to one place, which in reality is not allowed. Overall: 0.743 alone, 0.758 together, 0.760 all in one place. That is about 88 percent of the possible gain, with zero records moved. The gain is modest because cohorts are small and the model is simple; say so.">
   <p class="eyebrow">Results</p>
   <h2>Training together beats training alone at every hospital</h2>
   <div style="display:grid;grid-template-columns:1180px 1fr;gap:64px;align-items:start">
     <div style="display:flex;flex-direction:column;gap:12px">
-      <div class="legend"><span><i style="background:var(--local)"></i>Each hospital alone</span><span><i style="background:var(--swarm)"></i>Swarm, together</span><span><i style="background:var(--pooled)"></i>Pooled (not allowed)</span></div>
-      <svg id="barsChart" width="1180" height="560" viewBox="0 0 1180 560" role="img" aria-label="AUROC by hospital: alone, swarm, pooled"></svg>
+      <div class="legend"><span><i style="background:var(--local)"></i>Each hospital alone</span><span><i style="background:var(--swarm)"></i>Swarm, together</span><span><i style="background:var(--pooled)"></i>All records in one place (not allowed)</span></div>
+      <svg id="barsChart" width="1180" height="560" viewBox="0 0 1180 560" role="img" aria-label="AUROC by hospital: alone, swarm, all in one place"></svg>
     </div>
     <div style="display:flex;flex-direction:column;gap:28px;padding-top:60px">
-      <div data-step><p class="big num" style="color:var(--swarm)">70%</p><p class="body">of the gain from pooling, without moving a record</p></div>
-      <div data-step><p class="body"><span class="num">0.714</span> alone → <b class="num">0.728</b> together → <span class="num">0.734</span> pooled</p></div>
+      <div data-step><p class="big num" style="color:var(--swarm)">88%</p><p class="body">of the gain from copying all records to one place, without moving a record</p></div>
+      <div data-step><p class="body"><span class="num">0.743</span> alone → <b class="num">0.758</b> together → <span class="num">0.760</span> pooled</p></div>
     </div>
   </div>
   <div class="foot"><span>AUROC on 3,000 new synthetic patients per hospital, mean of 5 training runs. Axis starts at 0.5 (chance).</span></div>
 </section>
 
 <!-- 11 curve -->
-<section class="slide dark" id="curve" data-notes="The learning curve for the shared model over 30 rounds. Within about ten rounds, the model across all hospitals passes what the hospitals reach alone and moves toward the pooled ceiling. Oslo is the hardest site: its case mix is the most different.">
+<section class="slide dark" id="curve" data-notes="The learning curve for the shared model over 30 rounds. Within about ten rounds, the model across all hospitals passes what the hospitals reach alone and moves toward the ceiling of copying all records to one place. Oslo is the hardest site: its case mix is the most different.">
   <p class="eyebrow">Results</p>
   <h2>The shared model passes local-only training within rounds</h2>
-  <svg id="curveChart" width="1664" height="640" viewBox="0 0 1664 640" role="img" aria-label="AUROC of the shared model per round, with local-only and pooled reference lines"></svg>
+  <svg id="curveChart" width="1664" height="640" viewBox="0 0 1664 640" role="img" aria-label="AUROC of the shared model per round, with local-only and all-in-one-place reference lines"></svg>
 </section>
 
 <!-- 12 fairness -->
@@ -286,7 +302,7 @@ svg text { font-family: var(--sans); }
     <div style="display:flex;flex-direction:column;gap:14px">
       <h3>AUROC by sex, all hospitals</h3>
       <svg id="sexChart" width="796" height="420" viewBox="0 0 796 420" role="img" aria-label="AUROC for women and men by strategy"></svg>
-      <p class="body">Predicted vs observed response: women 44.4% vs 44.7%, men 49.0% vs 50.0%</p>
+      <p class="body">Predicted vs observed remission: women 38.8% vs 39.8%, men 45.4% vs 46.2%</p>
     </div>
     <div style="display:flex;flex-direction:column;gap:14px">
       <h3>Noise added to each update</h3>
@@ -338,7 +354,7 @@ svg text { font-family: var(--sans); }
   <h2>What has run, and what has not</h2>
   <table style="margin-top:16px" data-step>
     <tr><th style="width:74%">Piece</th><th style="width:26%">Status</th></tr>
-    <tr><td>Comparison: alone vs swarm/FedAvg vs pooled, 5 runs</td><td><span class="pill ok">Ran</span></td></tr>
+    <tr><td>Comparison: alone vs swarm/FedAvg vs all records in one place, 5 runs</td><td><span class="pill ok">Ran</span></td></tr>
     <tr><td>NVFlare simulator, swarm and FedAvg, with and without noise</td><td><span class="pill ok">Ran</span></td></tr>
     <tr><td>Certificates, coordinator and 3 hospital processes over mTLS, one-command demo</td><td><span class="pill ok">Ran</span></td></tr>
     <tr><td>Docker image, single-Spark compose, per-site launcher</td><td><span class="pill todo">Not yet run</span></td></tr>
@@ -358,11 +374,11 @@ svg text { font-family: var(--sans); }
 </section>
 
 <!-- 18 close -->
-<section class="slide accent" id="close" data-notes="Close on the two numbers: zero records moved, 70 percent of the pooling gain. Point people to the repository: the README, SPARKS.md for installation, and the one-command demo.">
+<section class="slide accent" id="close" data-notes="Close on the two numbers: zero records moved, about 88 percent of the gain from copying all records to one place. Point people to the repository: the README, SPARKS.md for installation, and the one-command demo.">
   <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:40px">
     <p class="eyebrow" style="color:#CFE3F8">ANCHOR-IBD · Proof of concept</p>
     <h1 style="width:1500px">Zero patient records moved. One shared model.</h1>
-    <p class="lead" style="color:#E2EDF9;width:1400px">Three hospitals, two countries, no central model holder, about 70% of the gain from pooling.</p>
+    <p class="lead" style="color:#E2EDF9;width:1400px">Three hospitals, two countries, no central model holder, about 88% of the gain from copying all records to one place.</p>
     <p class="body" style="color:#CFE3F8">Repository: <code>anchor-ibd-fl-poc</code> · README.md · SPARKS.md · <code>bash demo/run_demo.sh</code></p>
   </div>
 </section>
@@ -372,7 +388,7 @@ svg text { font-family: var(--sans); }
 <div id="notes" hidden></div>
 <nav id="bar" aria-label="Presentation controls">
   <button id="prev" aria-label="Previous slide">←</button>
-  <span id="counter">1 / 18</span>
+  <span id="counter">1 / 19</span>
   <button id="next" aria-label="Next slide">→</button>
   <div id="progress"><i></i></div>
   <button id="notesBtn" class="hide-sm" aria-pressed="false">Notes (N)</button>
@@ -382,16 +398,16 @@ svg text { font-family: var(--sans); }
 <script>
 // ---------- data from results/results.json and a real run of demo/run_demo.sh
 const H = {
-  pooled: [.692,.711,.715,.718,.719,.721,.723,.725,.726,.727,.727,.727,.727,.727,.728,.728,.728,.729,.728,.729,.73,.73,.731,.731,.731,.732,.733,.733,.733,.733],
-  rost: [.672,.694,.7,.704,.706,.709,.711,.713,.714,.716,.717,.718,.718,.719,.72,.721,.721,.722,.722,.723,.723,.724,.725,.726,.726,.726,.727,.727,.728,.728],
-  oru: [.705,.729,.734,.736,.737,.74,.741,.743,.744,.745,.746,.745,.745,.746,.746,.747,.747,.748,.747,.749,.749,.75,.751,.751,.751,.752,.753,.753,.754,.754],
-  ous: [.677,.692,.697,.7,.702,.704,.705,.706,.706,.705,.704,.704,.703,.703,.702,.702,.702,.702,.701,.701,.702,.702,.701,.702,.701,.702,.702,.703,.703,.703],
+  pooled: [.715,.741,.75,.753,.756,.757,.758,.758,.757,.757,.757,.757,.757,.757,.756,.756,.756,.756,.756,.755,.755,.755,.754,.753,.753,.753,.753,.752,.751,.751],
+  rost: [.709,.741,.753,.758,.761,.765,.766,.766,.767,.767,.768,.768,.768,.767,.767,.767,.767,.767,.767,.766,.766,.765,.765,.764,.764,.764,.764,.762,.761,.761],
+  oru: [.71,.74,.75,.754,.757,.758,.759,.759,.758,.758,.759,.758,.758,.758,.758,.758,.758,.758,.757,.757,.757,.757,.757,.756,.755,.755,.755,.754,.753,.753],
+  ous: [.716,.734,.74,.743,.745,.745,.745,.744,.742,.74,.739,.738,.738,.738,.737,.737,.736,.736,.736,.735,.735,.735,.734,.733,.732,.733,.734,.733,.733,.733],
 };
 const RES = { // AUROC: alone, swarm (FedAvg math), pooled
-  "Östergötland": [.703, .720, .729], "Örebro": [.739, .747, .752], "Oslo": [.699, .704, .704], "All hospitals": [.714, .728, .734],
+  "Östergötland": [.762, .768, .770], "Örebro": [.741, .757, .758], "Oslo": [.736, .742, .744], "All hospitals": [.743, .758, .760],
 };
-const SEX = {Women: [.721, .740, .747], Men: [.706, .716, .719]};
-const DP = [[0, .728], [.05, .727], [.1, .711], [.2, .687]];
+const SEX = {Women: [.744, .756, .757], Men: [.741, .756, .758]};
+const DP = [[0, .758], [.05, .755], [.1, .750], [.2, .695]];
 const LOG = [
   ["h", "== 1. Synthetic OMOP extract per hospital"],
   ["", "   rost  Region Östergötland (SWIBREG): 600 patients"],
@@ -405,18 +421,18 @@ const LOG = [
   ["g", "   Successfully registered client:oru"],
   ["g", "   Successfully registered client:ous"],
   ["h", "== 5. RISE admin submits the swarm job (5 rounds)"],
-  ["d", "   job id: de3768ee-96ad-4103-9d39-e4eabd2e198a"],
+  ["d", "   job id: 3f8637cd-3842-4221-9313-2ae35ca601c5"],
   ["h", "== 6. Train locally, one hospital averages per round"],
   ["b", "   round 0: averaged at rost"],
-  ["", "      AUROC  oru 0.624  ous 0.551  rost 0.505"],
+  ["", "      AUROC  oru 0.505  ous 0.464  rost 0.494"],
   ["b", "   round 1: averaged at rost"],
-  ["", "      AUROC  oru 0.693  ous 0.638  rost 0.677"],
+  ["", "      AUROC  oru 0.665  ous 0.641  rost 0.643"],
   ["b", "   round 2: averaged at ous"],
-  ["", "      AUROC  oru 0.701  ous 0.677  rost 0.720"],
-  ["b", "   round 3: averaged at rost"],
-  ["", "      AUROC  oru 0.715  ous 0.694  rost 0.745"],
+  ["", "      AUROC  oru 0.719  ous 0.696  rost 0.721"],
+  ["b", "   round 3: averaged at ous"],
+  ["", "      AUROC  oru 0.724  ous 0.714  rost 0.760"],
   ["b", "   round 4: averaged at ous"],
-  ["", "      AUROC  oru 0.719  ous 0.698  rost 0.752"],
+  ["", "      AUROC  oru 0.736  ous 0.713  rost 0.774"],
   ["h", "== 7. What the coordinator did"],
   ["g", "   aggregation steps at the coordinator: 0"],
   ["g", "   patient records sent: 0"],
@@ -629,12 +645,12 @@ enterHooks.fairness = () => {
 // ---------- privacy trade-off
 function dpChart(svg) {
   svg.innerHTML = "";
-  const W = 796, Hh = 420, m = {l: 70, r: 150, t: 30, b: 70}, lo = 0.65, hi = 0.75;
+  const W = 796, Hh = 420, m = {l: 70, r: 150, t: 30, b: 70}, lo = 0.68, hi = 0.78;
   const x = z => m.l + z / 0.2 * (W - m.l - m.r), y = v => m.t + (1 - (v - lo) / (hi - lo)) * (Hh - m.t - m.b);
   for (let v = lo; v <= hi + 1e-9; v += 0.05) { E("line", {x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: C.grid}, svg); T(svg, m.l - 12, y(v) + 8, v.toFixed(2), {"text-anchor": "end", "font-size": 24, fill: C.text3}); }
   DP.forEach(([z]) => T(svg, x(z), Hh - 36, z, {"text-anchor": "middle", "font-size": 24, fill: C.text3}));
   T(svg, (m.l + W - m.r) / 2, Hh - 4, "Noise multiplier", {"text-anchor": "middle", "font-size": 24, fill: C.text2});
-  [[.714, C.local, "Alone"], [.734, C.pooled, "Pooled"]].forEach(([v, c, l]) => {
+  [[.743, C.local, "Alone"], [.760, C.pooled, "All in one place"]].forEach(([v, c, l]) => {
     E("line", {x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: c, "stroke-width": 3, "stroke-dasharray": "8 8"}, svg);
     T(svg, W - m.r + 12, y(v) + 8, l, {"font-size": 24, fill: C.text2});
   });
@@ -649,13 +665,13 @@ function dpChart(svg) {
 // ---------- learning curve (dark slide)
 enterHooks.curve = () => {
   const svg = document.getElementById("curveChart"); svg.innerHTML = "";
-  const W = 1664, Hh = 640, m = {l: 80, r: 230, t: 20, b: 70}, lo = 0.66, hi = 0.76, NR = 30;
+  const W = 1664, Hh = 640, m = {l: 80, r: 230, t: 20, b: 70}, lo = 0.70, hi = 0.78, NR = 30;
   const x = r => m.l + (r - 1) / (NR - 1) * (W - m.l - m.r), y = v => m.t + (1 - (v - lo) / (hi - lo)) * (Hh - m.t - m.b);
   for (let v = lo; v <= hi + 1e-9; v += 0.02) { E("line", {x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: C.gridD}, svg); T(svg, m.l - 14, y(v) + 8, v.toFixed(2), {"text-anchor": "end", "font-size": 24, fill: "#8FA5AA"}); }
   [1, 5, 10, 15, 20, 25, 30].forEach(r => T(svg, x(r), Hh - 34, r, {"text-anchor": "middle", "font-size": 24, fill: "#8FA5AA"}));
   T(svg, (m.l + W - m.r) / 2, Hh - 2, "Round", {"text-anchor": "middle", "font-size": 24, fill: "#B9C9CC"});
   const labels = [];
-  [[.714, "#E07A45", "Alone"], [.734, "#3DBE8B", "Pooled"]].forEach(([v, c, l]) => {
+  [[.743, "#E07A45", "Alone"], [.760, "#3DBE8B", "All in one place"]].forEach(([v, c, l]) => {
     E("line", {x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: c, "stroke-width": 3, "stroke-dasharray": "10 10"}, svg);
     labels.push({y: y(v), t: l, fill: "#B9C9CC", w: 400});
   });

@@ -34,4 +34,4 @@ HEMOGLOBIN = {"concept_id": 3000963, "source": "LOINC:718-7", "unit": "g/L"}
 # observation: local concepts
 MONTREAL = {"concept_id": 2000000001, "source": "MONTREAL"}  # value_as_string L1/L2/L3 or E1/E2/E3
 SMOKING_CURRENT = {"concept_id": 2000000002, "source": "SMOKING_CURRENT"}  # value_as_number 0/1
-OUTCOME_SFR52 = {"concept_id": 2000000100, "source": "SFR_W52"}  # steroid-free remission at week 52, 0/1
+OUTCOME_CR52 = {"concept_id": 2000000100, "source": "CR_W52"}  # clinical remission at week 52, 0/1

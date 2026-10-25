@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 /* Scroll-driven scenes over a morphing particle field. One dark look by design.
-   Colour jobs: teal = the project, blue = swarm, amber = each hospital alone, green = pooled ceiling. */
+   Colour jobs: teal = the project, blue = swarm, amber = each hospital alone, green = all records in one place (ceiling). */
 :root{
   --bg:#04090c; --panel:rgba(12,24,30,.74); --panel-solid:#0c181e;
   --line:rgba(255,255,255,.09); --line2:rgba(255,255,255,.18);
@@ -209,6 +209,30 @@ input[type=range]{accent-color:var(--teal);width:150px}
 .closing .lede{margin:0 auto}
 .links{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:30px}
 
+
+/* data validation */
+.dv{display:grid;grid-template-columns:1fr 1.5fr;gap:18px;margin-top:26px}
+.dv>*{min-width:0}
+.dv .panel{padding:20px}
+.how{display:grid;gap:12px}
+.how .panel{padding:18px}
+.how h3{font-size:17px;margin-bottom:4px}
+.how p{color:var(--muted);font-size:14px}
+.vrow{display:grid;grid-template-columns:minmax(150px,1.1fr) 2fr;gap:14px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.vrow:last-child{border-bottom:0}
+.vrow .lab{font-size:13px;line-height:1.3}
+.vrow .lab small{display:block;font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.04em}
+.vtrack{position:relative;height:26px}
+.vtrack .axis{position:absolute;left:0;right:0;top:12px;height:2px;background:rgba(255,255,255,.07)}
+.vtrack .band{position:absolute;top:4px;height:18px;border-radius:4px;background:rgba(82,227,166,.16);border:1px solid rgba(82,227,166,.45)}
+.vtrack .tick{position:absolute;top:2px;width:2px;height:22px;background:var(--pooled)}
+.vtrack .dot{position:absolute;top:5px;width:16px;height:16px;border-radius:50%;margin-left:-8px;transition:left 1s cubic-bezier(.2,.7,.2,1),background .6s;box-shadow:0 0 0 3px #04090c}
+.vtrack .val{position:absolute;top:4px;font-family:var(--mono);font-size:11px;transition:left 1s cubic-bezier(.2,.7,.2,1);white-space:nowrap}
+.vscore{display:flex;align-items:baseline;gap:14px;margin:6px 0 10px;flex-wrap:wrap}
+.vscore b{font-size:44px;font-weight:500;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.st{font-family:var(--mono);font-size:10px;padding:1px 6px;border-radius:999px;border:1px solid var(--line2);color:var(--muted);margin-left:6px;vertical-align:1px}
+.st.ver{border-color:rgba(82,227,166,.45);color:var(--pooled)}
+@media (max-width:900px){.dv{grid-template-columns:1fr}.vrow{grid-template-columns:1fr}}
 @media (max-width:900px){
   #dots,#hint{display:none}
   .kpis{grid-template-columns:1fr 1fr}
@@ -230,7 +254,7 @@ input[type=range]{accent-color:var(--teal);width:150px}
 <div class="grain"></div>
 <div id="progress"></div>
 <nav id="dots" aria-label="Scenes"></nav>
-<div id="counter"><b>01</b> / 15</div>
+<div id="counter"><b>01</b> / 16</div>
 <div id="hint"><kbd>↑</kbd> <kbd>↓</kbd> or scroll</div>
 
 <main>
@@ -243,7 +267,7 @@ input[type=range]{accent-color:var(--teal);width:150px}
     <p class="lede rv" style="--d:3">Three hospitals in Sweden and Norway train one model that predicts response to IBD biologics. No patient record leaves a hospital, and no single party holds the model. It runs on <b>NVIDIA DGX Spark</b> with <b>NVIDIA FLARE swarm learning</b>.</p>
     <div class="typed rv" style="--d:4" id="typed"></div>
     <div class="hero-meta rv" style="--d:5">
-      <div><b>15 scenes</b>Scroll or use arrow keys</div>
+      <div><b>16 scenes</b>Scroll or use arrow keys</div>
       <div><b>2 live demos</b>Train a swarm in your browser</div>
       <div><b>0 records moved</b>Only model weights travel</div>
     </div>
@@ -259,7 +283,7 @@ input[type=range]{accent-color:var(--teal);width:150px}
   <div class="wrap">
     <div class="eyebrow rv">01 · The problem</div>
     <h2 class="rv" style="--d:1">Each registry alone is <em>too small</em></h2>
-    <p class="lede rv" style="--d:2">Sweden and Norway have comparable healthcare systems and strong IBD registries, but research stays national. Cohorts are too small for treatment-response and subgroup studies, and patient data cannot simply be pooled across the border under GDPR, national law and the EHDS.</p>
+    <p class="lede rv" style="--d:2">Sweden and Norway have comparable healthcare systems and strong IBD registries, but research stays national. Cohorts are too small for treatment-response and subgroup studies, and patient data cannot simply be copied across the border under GDPR, national law and the EHDS.</p>
     <div class="kpis">
       <div class="panel kpi rv" style="--d:3"><b data-count="100000">0</b><span>people with IBD in Sweden</span><small>SWIBREG</small></div>
       <div class="panel kpi rv" style="--d:4"><b data-count="40000">0</b><span>people with IBD in Norway</span><small>NorIBD</small></div>
@@ -275,13 +299,14 @@ input[type=range]{accent-color:var(--teal);width:150px}
   <div class="wrap topo">
     <div>
       <div class="eyebrow rv">02 · The idea</div>
-      <h2 class="rv" style="--d:1">Move the <em>model</em>, not the patients</h2>
-      <p class="lede rv" style="--d:2">There are three ways to learn from three hospitals. Pick one and watch what travels over the network.</p>
+      <h2 class="rv" style="--d:1">Patient records stay home. <em>Only the model travels.</em></h2>
+      <p class="lede rv" style="--d:2">A <b>model</b> here is a formula that predicts remission. Training it means tuning its 1,185 numbers, called <b>weights</b>, on patients. Three hospitals can build one model together in three ways. Pick one and watch what is sent between them.</p>
       <div class="tabs rv" style="--d:3" id="topoTabs" role="tablist">
-        <button class="chip" data-t="central" role="tab">Pool the data</button>
-        <button class="chip" data-t="fedavg" role="tab">Central server (FedAvg)</button>
-        <button class="chip on" data-t="swarm" role="tab">Swarm learning</button>
+        <button class="chip" data-t="central" role="tab">A · Copy all records to one place</button>
+        <button class="chip" data-t="fedavg" role="tab">B · Central server averages the model</button>
+        <button class="chip on" data-t="swarm" role="tab">C · Hospitals average it themselves</button>
       </div>
+      <p class="lede rv" style="--d:4;font-size:16px;margin-top:4px" id="topoDesc"></p>
       <div class="facts rv" style="--d:4" id="topoFacts"></div>
     </div>
     <div class="panel topo-box rv" style="--d:3">
@@ -308,10 +333,10 @@ input[type=range]{accent-color:var(--teal);width:150px}
         <div class="status" id="simStatus">Press <b>Play</b> to start round 1.</div>
       </div>
       <div class="panel rv" style="--d:4">
-        <div class="legend"><span><i style="background:var(--swarm)"></i>Swarm, all hospitals</span><span><i style="background:var(--local)"></i>Each hospital alone</span><span><i style="background:var(--pooled)"></i>Pooled ceiling</span></div>
+        <div class="legend"><span><i style="background:var(--swarm)"></i>Swarm, all hospitals</span><span><i style="background:var(--local)"></i>Each hospital alone</span><span><i style="background:var(--pooled)"></i>All records in one place (ceiling)</span></div>
         <svg id="simChart" viewBox="0 0 560 300" role="img" aria-label="Average AUROC per round for the swarm model, with reference lines for alone and pooled"></svg>
         <div class="readout" id="simRO"></div>
-        <p class="tiny" style="margin-top:12px">In-browser logistic model on synthetic patients, so numbers vary with each new cohort. The measured PoC results are in scene 09.</p>
+        <p class="tiny" style="margin-top:12px">In-browser logistic model on synthetic patients, so numbers vary with each new cohort. The measured PoC results are in the Results scene, and the data behind them is explained in “Is the data realistic?”.</p>
       </div>
     </div>
   </div>
@@ -363,7 +388,7 @@ input[type=range]{accent-color:var(--teal);width:150px}
   <div class="wrap">
     <div class="eyebrow rv">06 · What we train</div>
     <h2 class="rv" style="--d:1">Which biologic is <em>most likely</em> to work?</h2>
-    <p class="lede rv" style="--d:2">The model predicts steroid-free remission 52 weeks after starting a biologic. Because the drug is an input, it can compare all four for the same patient. Describe a patient; the bars come from the swarm model trained in your browser.</p>
+    <p class="lede rv" style="--d:2">The model predicts clinical remission 52 weeks after starting a biologic. Because the drug is an input, it can compare all four for the same patient. Describe a patient; the bars come from the swarm model trained in your browser.</p>
     <div class="tx">
       <div class="panel rv" style="--d:3" id="txForm"></div>
       <div class="panel rv" style="--d:4">
@@ -381,45 +406,67 @@ input[type=range]{accent-color:var(--teal);width:150px}
   <div class="wrap">
     <div class="eyebrow rv">07 · The data</div>
     <h2 class="rv" style="--d:1">Three cohorts, <em>three</em> case mixes</h2>
-    <p class="lede rv" style="--d:2">Each Spark holds its own synthetic OMOP CDM extract: person, condition, drug, measurement and observation tables, with real ICD-10, ATC and LOINC codes. The same feature code runs at every site.</p>
+    <p class="lede rv" style="--d:2">All patients are synthetic: generated by code, not collected from any registry. Each Spark holds its own synthetic OMOP CDM extract: person, condition, drug, measurement and observation tables, with real ICD-10, ATC and LOINC codes. The same feature code runs at every site.</p>
     <div class="cohorts">
       <div class="panel cohort rv" style="--d:3"><div class="reg">SWIBREG · SWEDEN</div><h3>Region Östergötland</h3>
         <div class="mbar"><div><span>Patients</span><b>600</b></div><div class="t"><i style="--w:100%"></i></div></div>
-        <div class="mbar"><div><span>Responders</span><b>41%</b></div><div class="t"><i style="--w:41%"></i></div></div>
+        <div class="mbar"><div><span>In remission at week 52</span><b>40%</b></div><div class="t"><i style="--w:40%"></i></div></div>
         <div class="mbar"><div><span>Prior anti-TNF</span><b>40%</b></div><div class="t"><i style="--w:40%"></i></div></div>
         <div class="mbar"><div><span>Ustekinumab</span><b>14%</b></div><div class="t"><i style="--w:14%"></i></div></div></div>
       <div class="panel cohort rv" style="--d:4"><div class="reg">SWIBREG · SWEDEN</div><h3>Örebro University Hospital</h3>
         <div class="mbar"><div><span>Patients</span><b>450</b></div><div class="t"><i style="--w:75%"></i></div></div>
-        <div class="mbar"><div><span>Responders</span><b>45%</b></div><div class="t"><i style="--w:45%"></i></div></div>
+        <div class="mbar"><div><span>In remission at week 52</span><b>37%</b></div><div class="t"><i style="--w:37%"></i></div></div>
         <div class="mbar"><div><span>Prior anti-TNF</span><b>35%</b></div><div class="t"><i style="--w:35%"></i></div></div>
         <div class="mbar"><div><span>Ustekinumab</span><b>17%</b></div><div class="t"><i style="--w:17%"></i></div></div></div>
       <div class="panel cohort rv" style="--d:5"><div class="reg">NORIBD · NORWAY</div><h3>Oslo University Hospital</h3>
         <div class="mbar"><div><span>Patients</span><b>350</b></div><div class="t"><i style="--w:58%"></i></div></div>
-        <div class="mbar"><div><span>Responders</span><b>52%</b></div><div class="t"><i style="--w:52%"></i></div></div>
+        <div class="mbar"><div><span>In remission at week 52</span><b>48%</b></div><div class="t"><i style="--w:48%"></i></div></div>
         <div class="mbar"><div><span>Prior anti-TNF</span><b>15%</b></div><div class="t"><i style="--w:15%"></i></div></div>
         <div class="mbar"><div><span>Ustekinumab</span><b>46%</b></div><div class="t"><i style="--w:46%"></i></div></div></div>
     </div>
-    <p class="tiny rv" style="--d:6;margin-top:16px">Oslo resembles a newly diagnosed inception cohort. A further 3,000 new synthetic patients per site, never used in training, measure every result.</p>
+    <p class="tiny rv" style="--d:6;margin-top:16px">Oslo follows the IBSEN III inception cohort: 37% Crohn’s, few anti-TNF-experienced patients. A further 3,000 new synthetic patients per site, never used in training, measure every result.</p>
+  </div>
+</section>
+
+<!-- 8b DATA VALIDATION -->
+<section class="scene" id="realistic" data-title="Is the data realistic?" data-shape="5">
+  <div class="wrap">
+    <div class="eyebrow rv">08 · Is the data realistic?</div>
+    <h2 class="rv" style="--d:1">Synthetic patients, <em>checked</em> against published figures</h2>
+    <p class="lede rv" style="--d:2">No real patient data is used anywhere. The patients come from a generator whose case mix and drug remission rates are calibrated to IBSEN III, Swedish registry data and head-to-head trials. A validation script then checks the generated OMOP tables against each figure.</p>
+    <div class="dv">
+      <div class="how">
+        <div class="panel rv" style="--d:3"><div class="tiny">1 · GENERATED, NOT COLLECTED</div><h3 style="margin-top:6px">A rule-based generator</h3><p>Each patient gets a diagnosis, sex, disease duration, smoking, prior anti-TNF, co-medication, lab values driven by a hidden inflammation level, and a biologic. Remission at week 52 comes from one shared formula with known effect directions, such as prior anti-TNF lowering response to another anti-TNF.</p></div>
+        <div class="panel rv" style="--d:4"><div class="tiny">2 · CALIBRATED</div><h3 style="margin-top:6px">Matched to published figures</h3><p>Oslo’s case mix follows IBSEN III. Each diagnosis and drug gets an offset that puts its remission rate on VARSITY, SEAVUE, ACT 1 or SWIBREG figures.</p></div>
+        <div class="panel rv" style="--d:5"><div class="tiny">3 · WHAT IT CANNOT TELL YOU</div><h3 style="margin-top:6px">Not real-world evidence</h3><p>Matching averages is not matching patients. Trial populations differ from registries, and some figures are provisional. The AUROCs show the federated machinery works; real predictive value needs real data.</p></div>
+      </div>
+      <div class="panel rv" style="--d:4">
+        <div class="tabs" id="dvTabs"><button class="chip" data-m="before">Before calibration</button><button class="chip on" data-m="after">After calibration</button></div>
+        <div class="vscore"><b id="dvScore">9 of 9</b><span class="small">scored checks inside the published range (green band)</span></div>
+        <div id="dvRows"></div>
+        <p class="tiny" style="margin-top:10px">Scale 0–80%. <span class="st ver">verified</span> checked against the paper or abstract · <span class="st">provisional</span> secondary source, still to verify. Full sources and method: DATA.md and validation/report.md in the code repository.</p>
+      </div>
+    </div>
   </div>
 </section>
 
 <!-- 9 RESULTS -->
 <section class="scene" id="results" data-title="Results" data-shape="2">
   <div class="wrap">
-    <div class="eyebrow rv">08 · Results of the PoC run</div>
+    <div class="eyebrow rv">09 · Results of the PoC run</div>
     <h2 class="rv" style="--d:1">Together beats alone, <em>at every hospital</em></h2>
     <div class="res">
       <div class="panel chart rv" style="--d:2">
         <div class="tabs" id="resTabs"><button class="chip on" data-v="site">By hospital</button><button class="chip" data-v="sex">Women and men</button></div>
-        <div class="legend"><span><i style="background:var(--local)"></i>Alone</span><span><i style="background:var(--swarm)"></i>Swarm</span><span><i style="background:var(--pooled)"></i>Pooled (not allowed)</span></div>
-        <svg id="resChart" viewBox="0 0 640 330" role="img" aria-label="AUROC by hospital or by sex for alone, swarm and pooled training"></svg>
+        <div class="legend"><span><i style="background:var(--local)"></i>Alone</span><span><i style="background:var(--swarm)"></i>Swarm</span><span><i style="background:var(--pooled)"></i>All records in one place (not allowed)</span></div>
+        <svg id="resChart" viewBox="0 0 640 330" role="img" aria-label="AUROC by hospital or by sex for alone, swarm and all-records-in-one-place training"></svg>
         <p class="tiny">AUROC on 3,000 new synthetic patients per hospital, mean of 5 training runs. Axis starts at 0.5 (chance).</p>
       </div>
       <div class="panel rv" style="--d:3;display:flex;flex-direction:column;gap:16px;justify-content:center">
-        <div class="bigk"><span data-count="70" data-suf="%">0</span></div>
-        <p class="lede" style="font-size:18px">of the gain from pooling all data, <b>without moving a single record</b>.</p>
-        <p class="mono small"><span style="color:var(--local)">0.714</span> alone → <b style="color:var(--swarm)">0.728</b> swarm → <span style="color:var(--pooled)">0.734</span> pooled</p>
-        <p class="small">For women and men, predicted response rates match observed rates (44.4% vs 44.7%, 49.0% vs 50.0%).</p>
+        <div class="bigk"><span data-count="88" data-suf="%">0</span></div>
+        <p class="lede" style="font-size:18px">of the accuracy gain you would get by copying all records to one place, <b>without moving a single record</b>.</p>
+        <p class="mono small"><span style="color:var(--local)">0.743</span> alone → <b style="color:var(--swarm)">0.758</b> swarm → <span style="color:var(--pooled)">0.760</span> all in one place</p>
+        <p class="small">The swarm model scores 0.756 for both women and men, and its predicted remission rates match observed rates (women 38.8% vs 39.8%, men 45.4% vs 46.2%).</p>
       </div>
     </div>
   </div>
@@ -428,18 +475,18 @@ input[type=range]{accent-color:var(--teal);width:150px}
 <!-- 10 CURVE + PRIVACY -->
 <section class="scene" id="curve" data-title="Rounds and privacy" data-shape="3">
   <div class="wrap">
-    <div class="eyebrow rv">09 · Learning curve and privacy</div>
+    <div class="eyebrow rv">10 · Learning curve and privacy</div>
     <h2 class="rv" style="--d:1">Better each round, with a <em>privacy dial</em></h2>
     <div class="res">
       <div class="panel chart rv" style="--d:2">
         <div class="tiny">SHARED MODEL, 30 ROUNDS · HOVER FOR VALUES</div>
-        <svg id="curveChart" viewBox="0 0 640 340" role="img" aria-label="AUROC per round for each hospital and overall, with alone and pooled reference lines"></svg>
+        <svg id="curveChart" viewBox="0 0 640 340" role="img" aria-label="AUROC per round for each hospital and overall, with reference lines for alone and all records in one place"></svg>
       </div>
       <div class="panel rv" style="--d:3">
         <div class="tiny">NOISE ADDED TO EACH UPDATE BEFORE IT LEAVES THE HOSPITAL</div>
         <div style="margin:18px 0 8px"><input type="range" id="dpSlider" min="0" max="3" step="1" value="0" style="width:100%" aria-label="Noise multiplier"></div>
         <div class="tiny" style="display:flex;justify-content:space-between"><span>0</span><span>0.05</span><span>0.1</span><span>0.2</span></div>
-        <div class="bigk" style="margin-top:24px;font-size:72px"><span id="dpVal">0.728</span></div>
+        <div class="bigk" style="margin-top:24px;font-size:72px"><span id="dpVal">0.758</span></div>
         <p class="small" id="dpNote" style="margin-top:8px"></p>
         <p class="tiny" style="margin-top:14px">Clipping plus Gaussian noise per update. No formal privacy budget (ε) is computed yet.</p>
       </div>
@@ -450,7 +497,7 @@ input[type=range]{accent-color:var(--teal);width:150px}
 <!-- 11 TERMINAL -->
 <section class="scene" id="demo" data-title="Run it" data-shape="4">
   <div class="wrap">
-    <div class="eyebrow rv">10 · The real thing</div>
+    <div class="eyebrow rv">11 · The real thing</div>
     <h2 class="rv" style="--d:1">One command, <em>three hospitals</em></h2>
     <p class="lede rv" style="--d:2">The repository’s demo script creates real certificates, starts a coordinator and three hospital clients as separate processes, and submits the swarm job as the RISE admin. This is a replay of a real run: watch the averaging hospital change, and the coordinator do no averaging at all.</p>
     <div class="cmdline rv" style="--d:3"><span class="cmd">bash demo/run_demo.sh</span><button class="btn" id="termReplay">↻ Replay</button><button class="btn" id="termCopy">Copy command</button></div>
@@ -461,7 +508,7 @@ input[type=range]{accent-color:var(--teal);width:150px}
 <!-- 12 ROLLOUT -->
 <section class="scene" id="rollout" data-title="Rollout" data-shape="5">
   <div class="wrap">
-    <div class="eyebrow rv">11 · Rollout on Sparks</div>
+    <div class="eyebrow rv">12 · Rollout on Sparks</div>
     <h2 class="rv" style="--d:1">From one Spark to <em>three hospitals</em></h2>
     <div class="roll">
       <div class="panel rv" style="--d:2"><div class="tiny">1 · IDENTITIES</div><h3 style="margin-top:8px">Certificates</h3><p class="small">RISE creates one kit per participant and sends each hospital only its own.</p><code>nvflare provision -p deploy/project.yml</code></div>
@@ -482,10 +529,10 @@ input[type=range]{accent-color:var(--teal);width:150px}
 <!-- 13 STATUS -->
 <section class="scene" id="status" data-title="Status" data-shape="2">
   <div class="wrap">
-    <div class="eyebrow rv">12 · Status</div>
+    <div class="eyebrow rv">13 · Status</div>
     <h2 class="rv" style="--d:1">What has run, and <em>what has not</em></h2>
     <div class="panel stat rv" style="--d:2">
-      <div class="srow"><span>Comparison of alone, federated and pooled training over 5 runs</span><span class="pill ok">Ran</span></div>
+      <div class="srow"><span>Comparison of alone, swarm and all-records-in-one-place training over 5 runs</span><span class="pill ok">Ran</span></div>
       <div class="srow"><span>NVIDIA FLARE simulator: swarm and FedAvg, with and without noise</span><span class="pill ok">Ran</span></div>
       <div class="srow"><span>Certificates, coordinator and three hospital processes over mTLS; the one-command demo</span><span class="pill ok">Ran</span></div>
       <div class="srow"><span>Docker image, single-Spark compose setup, per-site launcher</span><span class="pill no">Not yet run</span></div>
@@ -497,7 +544,7 @@ input[type=range]{accent-color:var(--teal);width:150px}
 <!-- 14 NEXT -->
 <section class="scene" id="next" data-title="Next steps" data-shape="1">
   <div class="wrap">
-    <div class="eyebrow rv">13 · Next steps</div>
+    <div class="eyebrow rv">14 · Next steps</div>
     <h2 class="rv" style="--d:1">Toward the <em>follow-on</em> project</h2>
     <div class="next">
       <div class="panel rv" style="--d:2"><div class="tiny">WP2</div><h3 style="margin-top:8px">Real data path</h3><p>ETL from SWIBREG and NorIBD exports into OMOP. Agree the outcome and variables, including sex-disaggregated ones.</p></div>
@@ -512,7 +559,7 @@ input[type=range]{accent-color:var(--teal);width:150px}
   <div class="wrap">
     <div class="eyebrow rv" style="justify-content:center">ANCHOR-IBD</div>
     <h2 class="rv" style="--d:1">Zero records moved.<br><em>One shared model.</em></h2>
-    <p class="lede rv" style="--d:2">Three hospitals, two countries, no central model holder, and about 70% of the gain from pooling, on synthetic data today and ready for the governance work that real data needs.</p>
+    <p class="lede rv" style="--d:2">Three hospitals, two countries, no central model holder, and about 88% of the gain from copying all records to one place, on calibrated synthetic data today and ready for the governance work that real data needs.</p>
     <div class="links rv" style="--d:3"><a class="btn primary" href="#sim">Train the swarm again</a><a class="btn" href="#hero">Back to the start</a></div>
     <p class="tiny rv" style="--d:4;margin-top:26px">RISE · Region Östergötland · Örebro University · Oslo University Hospital · AbbVie · Vinnova 2026-00990</p>
   </div>
@@ -629,7 +676,7 @@ addEventListener("keydown", e => {
 });
 
 /* typed text */
-const phrases = ["> train(local_patients) → share(weights)", "> aggregator = random(hospitals)", "> records_moved == 0", "> auroc: 0.714 alone → 0.728 together"];
+const phrases = ["> train(local_patients) → share(weights)", "> aggregator = random(hospitals)", "> records_moved == 0", "> auroc: 0.743 alone → 0.758 together"];
 let pi = 0, ci = 0, del = false;
 (function type() {
   const el = $("#typed"), ph = phrases[pi];
@@ -654,9 +701,12 @@ enter.problem = () => countUp($("#problem"));
 
 /* ============ TOPOLOGY SWITCHER ============ */
 const TOPO = {
-  central: {facts: [["Patient records leave the hospital", "yes", "bad"], ["Who holds the model", "one central party", "bad"], ["Legal across the border", "hard (GDPR, EHDS)", "bad"], ["Accuracy", "ceiling", "good"]]},
-  fedavg: {facts: [["Patient records leave the hospital", "no", "good"], ["Who holds the model", "the central server", "meh"], ["What travels", "model weights", "good"], ["Accuracy", "close to the ceiling", "good"]]},
-  swarm: {facts: [["Patient records leave the hospital", "no", "good"], ["Who holds the model", "every hospital, in turn", "good"], ["What the coordinator sees", "start / stop only", "good"], ["Accuracy", "same as FedAvg", "good"]]},
+  central: {desc: "Every hospital sends a copy of its patient records to one shared database, and the model is trained there. It gives the best accuracy, which is why the results call it the “ceiling”, but the records leave the hospitals and cross the border. That is what ANCHOR-IBD cannot do.",
+    facts: [["What is sent", "patient records", "bad"], ["Who holds the model", "the owner of the database", "bad"], ["Allowed across the border", "hard (GDPR, EHDS)", "bad"], ["Accuracy", "the ceiling", "good"]]},
+  fedavg: {desc: "Each hospital trains the model on its own patients and sends only the updated weights to a central server. The server averages them into one shared model and sends it back. The records never leave, but one server holds the model.",
+    facts: [["What is sent", "model weights only", "good"], ["Who holds the model", "the central server", "meh"], ["Allowed across the border", "designed for it", "good"], ["Accuracy", "close to the ceiling", "good"]]},
+  swarm: {desc: "The same as B, but without a central server: each round a different hospital does the averaging. A small coordinator only starts the job. This is what the proof of concept runs.",
+    facts: [["What is sent", "model weights only", "good"], ["Who holds the model", "every hospital, in turn", "good"], ["What the coordinator sees", "start / stop only", "good"], ["Accuracy", "same as B", "good"]]},
 };
 const topo = {mode: "swarm", t0: 0, agg: 0, round: 0};
 const tsvg = $("#topoSvg");
@@ -664,7 +714,7 @@ const TN = [{x: 110, y: 320}, {x: 490, y: 320}, {x: 300, y: 410}], TC = {x: 300,
 function drawTopo() {
   tsvg.innerHTML = "";
   const m = topo.mode, hubCol = m === "swarm" ? COL.dim : COL.swarm;
-  const label = m === "central" ? "Central database" : m === "fedavg" ? "Central server" : "Coordinator";
+  const label = m === "central" ? "Shared database" : m === "fedavg" ? "Central server" : "Coordinator";
   TN.forEach(n => S("line", {x1: TC.x, y1: TC.y + 28, x2: n.x, y2: n.y - 34, stroke: m === "swarm" ? "rgba(255,255,255,.14)" : "rgba(90,184,255,.45)", "stroke-width": m === "swarm" ? 1.5 : 2.5, "stroke-dasharray": m === "swarm" ? "4 7" : ""}, tsvg));
   if (m === "swarm") for (let i = 0; i < 3; i++) for (let j = i + 1; j < 3; j++) S("line", {x1: TN[i].x, y1: TN[i].y, x2: TN[j].x, y2: TN[j].y, stroke: "rgba(62,230,200,.35)", "stroke-width": 2.5, class: "lk", "data-i": i, "data-j": j}, tsvg);
   S("rect", {x: TC.x - 105, y: TC.y - 28, width: 210, height: 56, rx: 14, fill: "rgba(12,24,30,.95)", stroke: hubCol, "stroke-width": m === "swarm" ? 1.5 : 2, "stroke-dasharray": m === "swarm" ? "6 5" : ""}, tsvg);
@@ -675,6 +725,7 @@ function drawTopo() {
   });
   topo.dots = TN.map(() => S("circle", {r: 7, fill: COL.swarm, opacity: 0}, tsvg));
   topo.tag = ST(tsvg, 300, 455, "", {"text-anchor": "middle", fill: COL.muted, "font-size": 12, "font-family": "JetBrains Mono"});
+  $("#topoDesc").textContent = TOPO[m].desc;
   $("#topoFacts").innerHTML = TOPO[m].facts.map(([a, b, c]) => `<div class="fact"><span>${a}</span><span class="${c}">${b}</span></div>`).join("");
 }
 function animTopo(now) {
@@ -695,22 +746,24 @@ function animTopo(now) {
     d.setAttribute("fill", m === "central" ? COL.rose : inb ? COL.muted : COL.swarm);
     d.setAttribute("r", m === "central" ? 9 : 7); d.setAttribute("opacity", 1);
   });
-  topo.tag.textContent = m === "central" ? "patient records travel to one place" : m === "fedavg" ? "weights to the server, model back" : `round ${topo.round + 1}: ${HOSP[a]} averages`;
+  topo.tag.textContent = m === "central" ? "red: patient records copied to one place" : m === "fedavg" ? "grey: weights to the server · blue: averaged model back" : `round ${topo.round + 1}: ${HOSP[a]} averages · grey: weights in · blue: model out`;
   requestAnimationFrame(animTopo);
 }
 $$("#topoTabs .chip").forEach(b => b.onclick = () => { $$("#topoTabs .chip").forEach(x => x.classList.toggle("on", x === b)); topo.mode = b.dataset.t; drawTopo(); });
 drawTopo(); requestAnimationFrame(animTopo);
 
 /* ============ IN-BROWSER SWARM SIMULATION ============ */
-// Seeded RNG and synthetic cohorts with the same ground truth as ibdfl/synth.py (simplified).
+// Seeded RNG and synthetic cohorts with the same ground truth and calibration offsets as ibdfl/synth.py (simplified).
 function rng(seed) { let s = seed >>> 0; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 const gauss = r => Math.sqrt(-2 * Math.log(r() + 1e-12)) * Math.cos(2 * Math.PI * r());
 const SITES = [
   {n: 480, pcd: .55, dur: 8, ptnf: .40, drugs: [.35, .35, .25, .05], shift: 0},
   {n: 360, pcd: .50, dur: 7, ptnf: .35, drugs: [.30, .30, .30, .10], shift: -.1},
-  {n: 280, pcd: .45, dur: 1.5, ptnf: .15, drugs: [.25, .15, .15, .45], shift: .15},
+  {n: 280, pcd: .367, fuc: .459, suc: .062, dur: 1.5, ptnf: .15, drugs: [.25, .15, .15, .45], shift: .15},
 ];
 const DRUGS = ["Infliximab", "Adalimumab", "Vedolizumab", "Ustekinumab"];
+// ibdfl/calibration.json: per diagnosis x drug offsets fitted to VARSITY, SEAVUE, ACT 1 and SWIBREG figures
+const OFF = {UC: [-0.674, -1.160, -1.973, -0.939], CD: [1.059, 1.251, 0.824, 0.688]};
 function trueLogit(p) {
   const at = p.drug <= 1, vdz = p.drug === 2, ust = p.drug === 3;
   return .35 - 1.1 * p.prior * at - .3 * p.prior * !at + 1.0 * vdz * !p.cd - .7 * vdz * p.cd + .2 * ust + 1.2 * ust * p.cd * p.prior
@@ -719,15 +772,15 @@ function trueLogit(p) {
 }
 function patient(site, r) {
   const s = SITES[site], p = {};
-  p.female = r() < .5 ? 1 : 0; p.cd = r() < s.pcd ? 1 : 0; p.dur = Math.min(40, -Math.log(1 - r()) * s.dur + .1);
-  p.smoker = r() < (p.cd ? .25 : .1) ? 1 : 0; p.prior = r() < s.ptnf ? 1 : 0; p.imm = r() < .4 ? 1 : 0; p.ster = r() < .45 ? 1 : 0;
+  p.cd = r() < s.pcd ? 1 : 0; p.female = r() < (p.cd ? .5 : (s.fuc || .5)) ? 1 : 0; p.dur = Math.min(40, -Math.log(1 - r()) * s.dur + .1);
+  p.smoker = r() < (p.cd ? .25 : (s.suc || .1)) ? 1 : 0; p.prior = r() < s.ptnf ? 1 : 0; p.imm = r() < .4 ? 1 : 0; p.ster = r() < .45 ? 1 : 0;
   let u = r(), d = 0; while (d < 3 && u > s.drugs[d]) { u -= s.drugs[d]; d++; }
   if (p.prior && d <= 1 && r() < .6) d = p.cd ? 3 : 2;
   p.drug = d;
   const infl = gauss(r) + .3 * p.cd;
   p.crp = Math.exp(Math.log(8) + .9 * infl + .4 * gauss(r)); p.cal = Math.exp(Math.log(600) + .7 * infl + .5 * gauss(r));
   p.alb = 38 + 3 * gauss(r) - 1.5 * infl;
-  p.y = r() < 1 / (1 + Math.exp(-(trueLogit(p) + s.shift))) ? 1 : 0;
+  p.y = r() < 1 / (1 + Math.exp(-(trueLogit(p) + s.shift + OFF[p.cd ? "CD" : "UC"][p.drug]))) ? 1 : 0;
   return p;
 }
 function feats(p) {
@@ -848,7 +901,7 @@ function paintChart() {
   $("#simRO").innerHTML = [
     ["Alone (average)", sim.aloneAvg, COL.local],
     ["Swarm, round " + sim.round, cur, COL.swarm],
-    ["Pooled ceiling", sim.pooled, COL.pooled],
+    ["All records in one place", sim.pooled, COL.pooled],
   ].map(([l, v, c]) => `<div class="ro"><small>${l}</small><b style="color:${c}">${v == null ? "–" : v.toFixed(3)}</b></div>`).join("");
 }
 let simTimer = null;
@@ -857,7 +910,7 @@ function simStatus() {
   if (!h) { $("#simStatus").innerHTML = "Press <b>Play</b> to start round 1."; return; }
   const gain = sim.pooled - sim.aloneAvg, got = (h.avg - sim.aloneAvg) / (gain || 1);
   $("#simStatus").innerHTML = `Round <b>${sim.round}</b> of ${ROUNDS} · ${HOSP[h.agg]} averaged · swarm ${h.avg >= sim.aloneAvg ? "beats" : "is still below"} training alone` +
-    (gain > 0 && h.avg > sim.aloneAvg ? ` · <b>${Math.round(Math.min(1.5, got) * 100)}%</b> of the pooled gain` : "");
+    (gain > 0 && h.avg > sim.aloneAvg ? ` · <b>${Math.round(Math.min(1.5, got) * 100)}%</b> of the gain from copying all records to one place` : "");
 }
 function simTick() {
   if (!simRound()) { simStop(); $("#simPlay").textContent = "↻ Run again"; return; }
@@ -906,10 +959,43 @@ function updateTherapy() {
 }
 updateTherapy();
 
+/* ============ DATA VALIDATION ============ */
+const DV = [
+  ["Oslo: Crohn’s share", "IBSEN III", 36.7, 3, 45.0, 36.0, 1],
+  ["Oslo UC: women", "IBSEN III", 45.9, 3.5, 49.5, 46.9, 0],
+  ["Oslo UC: smokers", "IBSEN III", 6.2, 2.5, 10.3, 7.1, 0],
+  ["UC · vedolizumab · remission wk 52", "VARSITY", 31.3, 4, 70.2, 32.6, 1],
+  ["UC · adalimumab · remission wk 52", "VARSITY", 22.5, 4, 43.4, 23.9, 1],
+  ["UC · infliximab · remission wk 54", "ACT 1", 34.7, 4, 47.2, 34.7, 0],
+  ["Crohn’s · ustekinumab · remission wk 52", "SEAVUE", 65.0, 4, 50.9, 66.6, 1],
+  ["Crohn’s · adalimumab · remission wk 52", "SEAVUE", 61.0, 4, 36.7, 59.3, 1],
+  ["UC · ustekinumab after anti-TNF", "SWIBREG", 32.0, 5, 52.6, 31.1, 1],
+];
+const dvRows = $("#dvRows"), X = v => Math.min(100, v / 80 * 100);
+dvRows.innerHTML = DV.map(([lab, src, t, tol, , , ver], i) => `<div class="vrow"><div class="lab">${lab}<small>${src} · target ${t}%<span class="st ${ver ? "ver" : ""}">${ver ? "verified" : "provisional"}</span></small></div>
+  <div class="vtrack"><div class="axis"></div><div class="band" style="left:${X(t - tol)}%;width:${X(t + tol) - X(t - tol)}%"></div><div class="tick" style="left:${X(t)}%"></div><div class="dot" id="dvd${i}"></div><div class="val" id="dvv${i}"></div></div></div>`).join("");
+function dvMode(m) {
+  $$("#dvTabs .chip").forEach(b => b.classList.toggle("on", b.dataset.m === m));
+  let pass = 0;
+  DV.forEach(([, , t, tol, before, after], i) => {
+    const v = m === "before" ? before : after, ok = Math.abs(v - t) <= tol;
+    if (ok) pass++;
+    const d = $("#dvd" + i), l = $("#dvv" + i);
+    d.style.left = X(v) + "%"; d.style.background = ok ? COL.teal : COL.rose;
+    l.textContent = v.toFixed(1) + "%"; l.style.color = ok ? COL.teal : COL.rose;
+    l.style.left = `calc(${X(v)}% + ${X(v) > 82 ? -64 : 14}px)`;
+  });
+  $("#dvScore").textContent = `${pass} of ${DV.length}`;
+  $("#dvScore").style.color = pass === DV.length ? COL.teal : COL.rose;
+}
+$$("#dvTabs .chip").forEach(b => b.onclick = () => dvMode(b.dataset.m));
+dvMode("before");
+enter.realistic = () => setTimeout(() => dvMode("after"), reduced ? 0 : 900);
+
 /* ============ RESULTS (real PoC numbers) ============ */
 const RES = {
-  site: {"Östergötland": [.703, .720, .729], "Örebro": [.739, .747, .752], "Oslo": [.699, .704, .704], "All": [.714, .728, .734]},
-  sex: {"Women": [.721, .740, .747], "Men": [.706, .716, .719]},
+  site: {"Östergötland": [.762, .768, .770], "Örebro": [.741, .757, .758], "Oslo": [.736, .742, .744], "All": [.743, .758, .760]},
+  sex: {"Women": [.744, .756, .757], "Men": [.741, .756, .758]},
 };
 let resView = "site";
 function drawRes() {
@@ -936,19 +1022,19 @@ enter.results = () => { drawRes(); countUp($("#results")); };
 
 /* ============ LEARNING CURVE + PRIVACY ============ */
 const HC = {
-  "All hospitals": [.692,.711,.715,.718,.719,.721,.723,.725,.726,.727,.727,.727,.727,.727,.728,.728,.728,.729,.728,.729,.73,.73,.731,.731,.731,.732,.733,.733,.733,.733],
-  "Östergötland": [.672,.694,.7,.704,.706,.709,.711,.713,.714,.716,.717,.718,.718,.719,.72,.721,.721,.722,.722,.723,.723,.724,.725,.726,.726,.726,.727,.727,.728,.728],
-  "Örebro": [.705,.729,.734,.736,.737,.74,.741,.743,.744,.745,.746,.745,.745,.746,.746,.747,.747,.748,.747,.749,.749,.75,.751,.751,.751,.752,.753,.753,.754,.754],
-  "Oslo": [.677,.692,.697,.7,.702,.704,.705,.706,.706,.705,.704,.704,.703,.703,.702,.702,.702,.702,.701,.701,.702,.702,.701,.702,.701,.702,.702,.703,.703,.703],
+  "All hospitals": [.715,.741,.75,.753,.756,.757,.758,.758,.757,.757,.757,.757,.757,.757,.756,.756,.756,.756,.756,.755,.755,.755,.754,.753,.753,.753,.753,.752,.751,.751],
+  "Östergötland": [.709,.741,.753,.758,.761,.765,.766,.766,.767,.767,.768,.768,.768,.767,.767,.767,.767,.767,.767,.766,.766,.765,.765,.764,.764,.764,.764,.762,.761,.761],
+  "Örebro": [.71,.74,.75,.754,.757,.758,.759,.759,.758,.758,.759,.758,.758,.758,.758,.758,.758,.758,.757,.757,.757,.757,.757,.756,.755,.755,.755,.754,.753,.753],
+  "Oslo": [.716,.734,.74,.743,.745,.745,.745,.744,.742,.74,.739,.738,.738,.738,.737,.737,.736,.736,.736,.735,.735,.735,.734,.733,.732,.733,.734,.733,.733,.733],
 };
 function drawCurve() {
   const svg = $("#curveChart"); svg.innerHTML = "";
-  const W = 640, H = 340, m = {l: 44, r: 108, t: 14, b: 30}, lo = .66, hi = .76;
+  const W = 640, H = 340, m = {l: 44, r: 108, t: 14, b: 30}, lo = .70, hi = .78;
   const x = r => m.l + (r - 1) / 29 * (W - m.l - m.r), y = v => m.t + (1 - (v - lo) / (hi - lo)) * (H - m.t - m.b);
   for (let v = lo; v <= hi + 1e-9; v += .02) { S("line", {x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: COL.line}, svg); ST(svg, m.l - 8, y(v) + 4, v.toFixed(2), {"text-anchor": "end"}); }
   [1, 10, 20, 30].forEach(r => ST(svg, x(r), H - 8, "round " + r, {"text-anchor": "middle"}));
   const labels = [];
-  [[.714, COL.local, "Alone"], [.734, COL.pooled, "Pooled"]].forEach(([v, c, l]) => { S("line", {x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: c, "stroke-width": 1.5, "stroke-dasharray": "6 6"}, svg); labels.push({y: y(v), t: l, c: COL.muted}); });
+  [[.743, COL.local, "Alone"], [.760, COL.pooled, "All in one place"]].forEach(([v, c, l]) => { S("line", {x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: c, "stroke-width": 1.5, "stroke-dasharray": "6 6"}, svg); labels.push({y: y(v), t: l, c: COL.muted}); });
   const paths = [];
   Object.entries(HC).forEach(([k, a], i) => {
     const main = i === 0;
@@ -971,8 +1057,8 @@ function drawCurve() {
   hit.addEventListener("pointerleave", () => { cross.setAttribute("opacity", 0); tip.setAttribute("opacity", 0); });
 }
 enter.curve = drawCurve;
-const DP = [[0, .728, "No noise: the full gain from training together."], [.05, .727, "A little noise costs almost nothing."], [.1, .711, "Now noise costs more than training together gains: below the 0.714 of training alone."], [.2, .687, "Strong noise: clearly worse than training alone."]];
-$("#dpSlider").oninput = e => { const [, v, note] = DP[+e.target.value]; $("#dpVal").textContent = v.toFixed(3); $("#dpVal").style.color = v >= .714 ? COL.teal : COL.local; $("#dpNote").textContent = note; };
+const DP = [[0, .758, "No noise: the full gain from training together."], [.05, .755, "A little noise costs almost nothing."], [.1, .750, "More noise costs more, but training together still beats the 0.743 of training alone."], [.2, .695, "Strong noise: now clearly worse than training alone."]];
+$("#dpSlider").oninput = e => { const [, v, note] = DP[+e.target.value]; $("#dpVal").textContent = v.toFixed(3); $("#dpVal").style.color = v >= .743 ? COL.teal : COL.local; $("#dpNote").textContent = note; };
 $("#dpSlider").oninput({target: $("#dpSlider")});
 
 /* ============ TERMINAL REPLAY (real run of demo/run_demo.sh) ============ */
@@ -989,28 +1075,28 @@ const LOG = [
   ["g", "   Successfully registered client:oru for project anchor_ibd."],
   ["g", "   Successfully registered client:ous for project anchor_ibd."],
   ["h", "== 5. The RISE admin submits the swarm job (5 rounds)"],
-  ["d", "   job id: de3768ee-96ad-4103-9d39-e4eabd2e198a"],
+  ["d", "   job id: 3f8637cd-3842-4221-9313-2ae35ca601c5"],
   ["h", "== 6. Training: hospitals train locally, one hospital averages each round"],
   ["b", "   round 0: averaged at rost"],
-  ["", "      [oru] round 0: global model val loss 0.694, test AUROC 0.624 (F 0.614 / M 0.616)"],
-  ["", "      [ous] round 0: global model val loss 0.692, test AUROC 0.551 (F 0.598 / M 0.518)"],
-  ["", "      [rost] round 0: global model val loss 0.700, test AUROC 0.505 (F 0.454 / M 0.546)"],
+  ["", "      [oru] round 0: global model val loss 0.691, test AUROC 0.505"],
+  ["", "      [ous] round 0: global model val loss 0.689, test AUROC 0.464"],
+  ["", "      [rost] round 0: global model val loss 0.676, test AUROC 0.494"],
   ["b", "   round 1: averaged at rost"],
-  ["", "      [oru] round 1: global model val loss 0.677, test AUROC 0.693 (F 0.736 / M 0.634)"],
-  ["", "      [ous] round 1: global model val loss 0.684, test AUROC 0.638 (F 0.645 / M 0.653)"],
-  ["", "      [rost] round 1: global model val loss 0.677, test AUROC 0.677 (F 0.662 / M 0.690)"],
+  ["", "      [oru] round 1: global model val loss 0.672, test AUROC 0.665"],
+  ["", "      [ous] round 1: global model val loss 0.675, test AUROC 0.641"],
+  ["", "      [rost] round 1: global model val loss 0.659, test AUROC 0.643"],
   ["b", "   round 2: averaged at ous"],
-  ["", "      [oru] round 2: global model val loss 0.654, test AUROC 0.701 (F 0.738 / M 0.651)"],
-  ["", "      [ous] round 2: global model val loss 0.670, test AUROC 0.677 (F 0.664 / M 0.697)"],
-  ["", "      [rost] round 2: global model val loss 0.656, test AUROC 0.720 (F 0.722 / M 0.713)"],
-  ["b", "   round 3: averaged at rost"],
-  ["", "      [oru] round 3: global model val loss 0.628, test AUROC 0.715 (F 0.742 / M 0.679)"],
-  ["", "      [ous] round 3: global model val loss 0.651, test AUROC 0.694 (F 0.680 / M 0.718)"],
-  ["", "      [rost] round 3: global model val loss 0.644, test AUROC 0.745 (F 0.752 / M 0.721)"],
+  ["", "      [oru] round 2: global model val loss 0.650, test AUROC 0.719"],
+  ["", "      [ous] round 2: global model val loss 0.657, test AUROC 0.696"],
+  ["", "      [rost] round 2: global model val loss 0.637, test AUROC 0.721"],
+  ["b", "   round 3: averaged at ous"],
+  ["", "      [oru] round 3: global model val loss 0.629, test AUROC 0.724"],
+  ["", "      [ous] round 3: global model val loss 0.635, test AUROC 0.714"],
+  ["", "      [rost] round 3: global model val loss 0.615, test AUROC 0.760"],
   ["b", "   round 4: averaged at ous"],
-  ["", "      [oru] round 4: global model val loss 0.605, test AUROC 0.719 (F 0.736 / M 0.692)"],
-  ["", "      [ous] round 4: global model val loss 0.633, test AUROC 0.698 (F 0.678 / M 0.713)"],
-  ["", "      [rost] round 4: global model val loss 0.637, test AUROC 0.752 (F 0.764 / M 0.726)"],
+  ["", "      [oru] round 4: global model val loss 0.608, test AUROC 0.736"],
+  ["", "      [ous] round 4: global model val loss 0.609, test AUROC 0.713"],
+  ["", "      [rost] round 4: global model val loss 0.595, test AUROC 0.774"],
   ["h", "== 7. What the coordinator did"],
   ["g", "   aggregation steps in the coordinator log: 0"],
   ["g", "   patient records sent: 0 (each client only read its own folder)"],

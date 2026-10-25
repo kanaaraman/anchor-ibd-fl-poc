@@ -59,7 +59,7 @@ def load_site(site_dir):
             r["loc"] = o["value_as_string"]
         elif cid == V.SMOKING_CURRENT["concept_id"]:
             r["smoker"] = int(o["value_as_number"])
-        elif cid == V.OUTCOME_SFR52["concept_id"]:
+        elif cid == V.OUTCOME_CR52["concept_id"]:
             r["y"] = int(o["value_as_number"])
 
     X, y, female, drug = [], [], [], []

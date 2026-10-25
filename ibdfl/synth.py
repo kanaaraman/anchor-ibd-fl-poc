@@ -8,11 +8,18 @@ different (non-IID) case mix, mirroring the registries in ANCHOR-IBD:
   ous   Oslo University Hospital (NorIBD / IBSEN III-like)  newly diagnosed,
         few anti-TNF-experienced patients, ustekinumab used far more often
 
-The outcome (steroid-free remission at week 52 on the index biologic) comes
-from one shared ground-truth model with drug x phenotype and drug x sex
+The outcome (clinical remission at week 52 on the index biologic) comes from
+one shared ground-truth model with drug x phenotype and drug x sex
 interactions. Some of those interactions are rare at a single site, which is
 why pooling signal across sites helps.
+
+Calibration: the Oslo case mix follows IBSEN III, and each diagnosis x drug
+cell has an offset (ibdfl/calibration.json, fitted by validation/calibrate.py)
+so that remission rates match published trial and registry figures in
+validation/targets.json. validation/validate.py checks the generated OMOP data
+against those targets. Everything here is still synthetic; see DATA.md.
 """
+import json
 import csv
 import os
 from datetime import date, timedelta
@@ -23,15 +30,27 @@ from . import vocab as V
 
 SITES = {
     "rost": dict(name="Region Östergötland", registry="SWIBREG", country="SE", n=600,
-                 p_cd=0.55, dur_mean=8.0, p_prior_tnf=0.40,
+                 p_cd=0.55, p_female_uc=0.5, p_smoke_uc=0.10, dur_mean=8.0, p_prior_tnf=0.40,
                  drugs=[0.35, 0.35, 0.25, 0.05], care_site_id=101),
     "oru": dict(name="Örebro University Hospital", registry="SWIBREG", country="SE", n=450,
-                p_cd=0.50, dur_mean=7.0, p_prior_tnf=0.35,
+                p_cd=0.50, p_female_uc=0.5, p_smoke_uc=0.10, dur_mean=7.0, p_prior_tnf=0.35,
                 drugs=[0.30, 0.30, 0.30, 0.10], care_site_id=102),
     "ous": dict(name="Oslo University Hospital", registry="NorIBD", country="NO", n=350,
-                p_cd=0.45, dur_mean=1.5, p_prior_tnf=0.15,
+                # IBSEN III: 626 CD vs 1,082 UC; UC 45.9% women, 6.2% smokers (see validation/targets.json)
+                p_cd=0.367, p_female_uc=0.459, p_smoke_uc=0.062, dur_mean=1.5, p_prior_tnf=0.15,
                 drugs=[0.25, 0.15, 0.15, 0.45], care_site_id=201),
 }
+
+
+_CAL_PATH = os.path.join(os.path.dirname(__file__), "calibration.json")
+
+
+def load_offsets():
+    """Per (diagnosis, drug) logit offsets fitted by validation/calibrate.py; zeros if absent."""
+    if not os.path.exists(_CAL_PATH):
+        return {}
+    with open(_CAL_PATH, encoding="utf-8") as f:
+        return json.load(f)["offsets"]
 
 
 def true_logit(p):
@@ -56,18 +75,18 @@ def true_logit(p):
     return z
 
 
-def sample_patients(site, rng, n=None):
+def sample_patients(site, rng, n=None, offsets=None):
     s = SITES[site]
     n = n or s["n"]
     p = {}
-    p["female"] = rng.random(n) < 0.5
     p["cd"] = rng.random(n) < s["p_cd"]
+    p["female"] = rng.random(n) < np.where(p["cd"], 0.5, s["p_female_uc"])
     p["age_dx"] = np.clip(rng.normal(30, 12, n), 8, 80)
     p["duration"] = np.clip(rng.exponential(s["dur_mean"], n), 0.1, 40)
     p["age"] = p["age_dx"] + p["duration"]
     p["loc"] = np.where(p["cd"], rng.choice(["L1", "L2", "L3"], n, p=[0.35, 0.25, 0.40]),
                         rng.choice(["E1", "E2", "E3"], n, p=[0.20, 0.40, 0.40]))
-    p["smoker"] = rng.random(n) < np.where(p["cd"], 0.25, 0.10)
+    p["smoker"] = rng.random(n) < np.where(p["cd"], 0.25, s["p_smoke_uc"])
     p["prior_tnf"] = rng.random(n) < s["p_prior_tnf"]
     p["immunomod"] = rng.random(n) < 0.40
     p["steroid"] = rng.random(n) < 0.45
@@ -82,7 +101,12 @@ def sample_patients(site, rng, n=None):
     p["albumin"] = rng.normal(38, 3, n) - 1.5 * infl
     p["hb"] = rng.normal(135, 12, n) - 6 * infl - 10 * p["female"]
     site_shift = {"rost": 0.0, "oru": -0.1, "ous": 0.15}[site]
-    p["response"] = rng.random(n) < 1 / (1 + np.exp(-(true_logit(p) + site_shift)))
+    p["logit_base"] = true_logit(p) + site_shift
+    off = load_offsets() if offsets is None else offsets
+    cell = np.array([f"{'CD' if c else 'UC'}:{V.DRUG_ORDER[d]}" for c, d in zip(p["cd"], p["drug"])])
+    p["logit"] = p["logit_base"] + np.array([off.get(c, 0.0) for c in cell])
+    p["cell"] = cell
+    p["response"] = rng.random(n) < 1 / (1 + np.exp(-p["logit"]))
     return p
 
 
@@ -134,9 +158,9 @@ def write_omop(site, out_dir, seed=0, n=None):
                  value_as_number="", value_as_string=p["loc"][i], observation_source_value=V.MONTREAL["source"]),
             dict(person_id=pid, observation_concept_id=V.SMOKING_CURRENT["concept_id"], observation_date=index,
                  value_as_number=int(p["smoker"][i]), value_as_string="", observation_source_value=V.SMOKING_CURRENT["source"]),
-            dict(person_id=pid, observation_concept_id=V.OUTCOME_SFR52["concept_id"],
+            dict(person_id=pid, observation_concept_id=V.OUTCOME_CR52["concept_id"],
                  observation_date=index + timedelta(days=364), value_as_number=int(p["response"][i]),
-                 value_as_string="", observation_source_value=V.OUTCOME_SFR52["source"]),
+                 value_as_string="", observation_source_value=V.OUTCOME_CR52["source"]),
         ]
     for table, recs in rows.items():
         with open(os.path.join(out_dir, f"{table}.csv"), "w", newline="", encoding="utf-8") as f:

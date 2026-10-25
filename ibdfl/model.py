@@ -5,7 +5,7 @@ from .features import N_FEATURES
 
 
 class IBDNet(nn.Module):
-    """Small MLP: predicts P(steroid-free remission at week 52 | baseline, biologic)."""
+    """Small MLP: predicts P(clinical remission at week 52 | baseline, biologic)."""
 
     def __init__(self, n_features=N_FEATURES, hidden=32):
         super().__init__()

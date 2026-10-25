@@ -49,7 +49,7 @@ The current model is small (1,185 weights) and trains in seconds even on a CPU. 
 
 | | |
 | --- | --- |
-| Question | Will this patient reach steroid-free clinical remission 52 weeks after starting this biologic? |
+| Question | Will this patient be in clinical remission 52 weeks after starting this biologic? |
 | Biologics | Infliximab, adalimumab, vedolizumab, ustekinumab |
 | Inputs (19) | Age, sex, Crohn's disease or ulcerative colitis, disease duration, Montreal location or extent, smoking, prior anti-TNF, azathioprine, prednisolone, CRP, faecal calprotectin, albumin, haemoglobin, and the biologic started |
 | Output | A probability of response |

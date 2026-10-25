@@ -166,7 +166,7 @@ for seed in range(args.seeds):
 out = dict(
     config=dict(rounds=args.rounds, local_epochs=args.local_epochs, seeds=args.seeds, clip=args.clip,
                 model="MLP 19-32-16-1", n_params=n_params, features=FEATURES,
-                outcome="Steroid-free remission at week 52 on index biologic"),
+                outcome="Clinical remission at week 52 on the index biologic"),
     sites={s: dict(**{k: v for k, v in SITES[s].items() if k in ("name", "registry", "country")},
                    n_train=n_train[s], n_test=int(len(data[s]["test"][1])),
                    n_val=int(len(data[s]["val"][1])),
