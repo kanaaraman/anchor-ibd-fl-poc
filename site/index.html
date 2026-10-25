@@ -710,7 +710,7 @@ const TOPO = {
 };
 const topo = {mode: "swarm", t0: 0, agg: 0, round: 0};
 const tsvg = $("#topoSvg");
-const TN = [{x: 110, y: 320}, {x: 490, y: 320}, {x: 300, y: 410}], TC = {x: 300, y: 80};
+const TN = [{x: 110, y: 290}, {x: 490, y: 290}, {x: 300, y: 360}], TC = {x: 300, y: 80};
 function drawTopo() {
   tsvg.innerHTML = "";
   const m = topo.mode, hubCol = m === "swarm" ? COL.dim : COL.swarm;
@@ -724,6 +724,7 @@ function drawTopo() {
     ST(tsvg, n.x, n.y + 58, HOSP[i], {"text-anchor": "middle", fill: COL.ink, "font-size": 15, "font-family": "Space Grotesk"});
   });
   topo.dots = TN.map(() => S("circle", {r: 7, fill: COL.swarm, opacity: 0}, tsvg));
+  topo.dl = TN.map(() => ST(tsvg, 0, 0, "", {"font-size": 13, "font-family": "JetBrains Mono", "font-weight": 600, opacity: 0}));
   topo.tag = ST(tsvg, 300, 455, "", {"text-anchor": "middle", fill: COL.muted, "font-size": 12, "font-family": "JetBrains Mono"});
   $("#topoDesc").textContent = TOPO[m].desc;
   $("#topoFacts").innerHTML = TOPO[m].facts.map(([a, b, c]) => `<div class="fact"><span>${a}</span><span class="${c}">${b}</span></div>`).join("");
@@ -739,14 +740,22 @@ function animTopo(now) {
     const d = topo.dots[i];
     if (!d) return;
     const tgt = m === "swarm" ? TN[a] : {x: TC.x, y: TC.y + 20};
-    if ((m === "swarm" && i === a) || t > .94) { d.setAttribute("opacity", 0); return; }
+    const dl = topo.dl[i];
+    if ((m === "swarm" && i === a) || t > .94) { d.setAttribute("opacity", 0); dl.setAttribute("opacity", 0); return; }
     const inb = m === "central" ? true : t < .47, u = m === "central" ? t / .94 : inb ? t / .47 : (t - .47) / .47;
     const A = inb ? n : tgt, B = inb ? tgt : n, v = .15 + .7 * Math.min(1, u);
     d.setAttribute("cx", A.x + (B.x - A.x) * v); d.setAttribute("cy", A.y + (B.y - A.y) * v);
     d.setAttribute("fill", m === "central" ? COL.rose : inb ? COL.muted : COL.swarm);
     d.setAttribute("r", m === "central" ? 9 : 7); d.setAttribute("opacity", 1);
+    const col = m === "central" ? COL.rose : inb ? "#b9c9cc" : COL.swarm;
+    dl.textContent = m === "central" ? "patient records" : inb ? "weights" : "shared model";
+    // left dot labels to its left, right dot to its right, middle dot underneath, so labels never collide
+    dl.setAttribute("text-anchor", i === 0 ? "end" : i === 1 ? "start" : "middle");
+    dl.setAttribute("x", +d.getAttribute("cx") + (i === 0 ? -14 : i === 1 ? 14 : 0));
+    dl.setAttribute("y", +d.getAttribute("cy") + (i === 2 ? 26 : 4));
+    dl.setAttribute("fill", col); dl.setAttribute("opacity", 1);
   });
-  topo.tag.textContent = m === "central" ? "red: patient records copied to one place" : m === "fedavg" ? "grey: weights to the server · blue: averaged model back" : `round ${topo.round + 1}: ${HOSP[a]} averages · grey: weights in · blue: model out`;
+  topo.tag.textContent = m === "central" ? "patient records are copied out of every hospital" : m === "fedavg" ? "records stay home · only weights and the model travel" : `round ${topo.round + 1}: ${HOSP[a]} averages · records stay home`;
   requestAnimationFrame(animTopo);
 }
 $$("#topoTabs .chip").forEach(b => b.onclick = () => { $$("#topoTabs .chip").forEach(x => x.classList.toggle("on", x === b)); topo.mode = b.dataset.t; drawTopo(); });
