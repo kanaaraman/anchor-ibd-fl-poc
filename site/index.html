@@ -1,0 +1,1034 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ANCHOR-IBD Swarm Learning</title>
+<meta name="description" content="An interactive briefing: decentralised swarm learning across Swedish and Norwegian IBD registries on NVIDIA DGX Spark, with a live in-browser simulation.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Scroll-driven scenes over a morphing particle field. One dark look by design.
+   Colour jobs: teal = the project, blue = swarm, amber = each hospital alone, green = pooled ceiling. */
+:root{
+  --bg:#04090c; --panel:rgba(12,24,30,.74); --panel-solid:#0c181e;
+  --line:rgba(255,255,255,.09); --line2:rgba(255,255,255,.18);
+  --ink:#eaf2f4; --muted:#8ea3ab; --dim:#5a6e75;
+  --teal:#3ee6c8; --swarm:#5ab8ff; --local:#ffa552; --pooled:#52e3a6; --rose:#ff7aa8;
+  --display:"Space Grotesk",system-ui,sans-serif; --serif:"Instrument Serif",Georgia,serif; --mono:"JetBrains Mono",ui-monospace,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;scroll-snap-type:y proximity;background:var(--bg)}
+body{background:var(--bg);color:var(--ink);font-family:var(--display);line-height:1.5;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+a{color:var(--teal);text-decoration:none} a:hover{text-decoration:underline}
+button{font:inherit;color:inherit;cursor:pointer;background:none;border:0}
+::selection{background:var(--teal);color:#021210}
+:focus-visible{outline:2px solid var(--teal);outline-offset:3px;border-radius:6px}
+
+#field{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;pointer-events:none}
+.grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.05;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+.vignette{position:fixed;inset:0;z-index:1;pointer-events:none;background:radial-gradient(ellipse at center,transparent 40%,rgba(0,0,0,.78) 100%)}
+
+#progress{position:fixed;top:0;left:0;height:2px;z-index:50;background:linear-gradient(90deg,var(--teal),var(--swarm),var(--pooled));width:0;transition:width .3s}
+#dots{position:fixed;right:22px;top:50%;transform:translateY(-50%);z-index:40;display:flex;flex-direction:column;gap:12px}
+#dots button{width:10px;height:10px;border-radius:50%;border:1px solid var(--line2);position:relative;transition:.3s}
+#dots button.on{background:var(--teal);border-color:var(--teal);box-shadow:0 0 12px var(--teal)}
+#dots button span{position:absolute;right:20px;top:50%;transform:translateY(-50%);white-space:nowrap;font-size:12px;color:var(--muted);opacity:0;pointer-events:none;transition:.2s;font-family:var(--mono)}
+#dots button:hover span,#dots button:focus-visible span{opacity:1}
+#dots button.on span{color:var(--ink)}
+#counter{position:fixed;left:24px;bottom:20px;z-index:40;font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.08em}
+#counter b{color:var(--ink);font-weight:600}
+#hint{position:fixed;right:24px;bottom:20px;z-index:40;font-family:var(--mono);font-size:11px;color:var(--dim)}
+kbd{border:1px solid var(--line2);border-radius:4px;padding:1px 5px;font-family:var(--mono);font-size:10px;color:var(--muted)}
+
+main{position:relative;z-index:2}
+.scene{min-height:100vh;scroll-snap-align:start;padding:96px max(7vw,16px) 80px;display:flex;flex-direction:column;justify-content:center;position:relative}
+.wrap{max-width:1240px;width:100%;margin:0 auto}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--teal);display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.eyebrow::before{content:"";width:28px;height:1px;background:currentColor}
+h1,h2{font-weight:500;letter-spacing:-.03em;line-height:1.02}
+h2{font-size:clamp(34px,5vw,68px);margin-bottom:22px;text-wrap:balance}
+h2 em,h1 em{font-family:var(--serif);font-style:italic;font-weight:400;letter-spacing:-.01em;color:var(--teal)}
+h3{font-size:20px;font-weight:600;letter-spacing:-.01em;margin-bottom:8px}
+.lede{font-size:clamp(16px,1.5vw,20px);color:var(--muted);max-width:740px;font-weight:300}
+.lede b{color:var(--ink);font-weight:500}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;padding:5px 11px;border-radius:999px;border:1px solid var(--line2);color:var(--muted);transition:.2s;white-space:nowrap}
+.chip.on,.chip:hover{border-color:var(--teal);color:var(--ink);background:rgba(62,230,200,.08)}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:999px;border:1px solid var(--line2);font-size:14px;transition:.2s;background:rgba(255,255,255,.03)}
+.btn:hover{border-color:var(--teal);background:rgba(62,230,200,.08)}
+.btn.primary{background:var(--teal);color:#021210;border-color:var(--teal);font-weight:600}
+.btn.primary:hover{background:#82f2de}
+.mono{font-family:var(--mono)}
+.num{font-variant-numeric:tabular-nums}
+.small{font-size:13px;color:var(--muted)}
+.tiny{font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.04em}
+
+.rv{opacity:0;transform:translateY(28px);transition:opacity .9s cubic-bezier(.2,.7,.2,1),transform .9s cubic-bezier(.2,.7,.2,1);transition-delay:calc(var(--d,0)*90ms)}
+.scene.in .rv{opacity:1;transform:none}
+
+/* hero */
+#hero{align-items:flex-start}
+#hero h1{font-size:clamp(52px,10vw,150px);margin:10px 0 24px}
+#hero h1 .line{display:block;overflow:hidden;padding-bottom:.06em}
+#hero h1 .line span{display:inline-block;transform:translateY(110%);transition:transform 1.2s cubic-bezier(.2,.8,.2,1)}
+#hero.in h1 .line span{transform:none}
+#hero.in h1 .line:nth-child(2) span{transition-delay:.15s}
+.hero-meta{display:flex;gap:28px;flex-wrap:wrap;margin-top:38px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.hero-meta div b{display:block;color:var(--ink);font-size:13px;margin-bottom:2px}
+.typed{font-family:var(--mono);color:var(--local);font-size:clamp(13px,1.2vw,16px);min-height:1.6em;margin-top:8px}
+.typed::after{content:"▌";animation:blink 1s steps(1) infinite;margin-left:2px}
+@keyframes blink{50%{opacity:0}}
+.scrollcue{position:absolute;bottom:34px;left:50%;transform:translateX(-50%);width:22px;height:36px;border:1px solid var(--line2);border-radius:12px}
+.scrollcue::after{content:"";position:absolute;left:50%;top:8px;width:2px;height:7px;background:var(--teal);transform:translateX(-50%);animation:cue 1.8s infinite}
+@keyframes cue{0%{opacity:0;transform:translate(-50%,0)}40%{opacity:1}100%{opacity:0;transform:translate(-50%,12px)}}
+.partners{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+
+/* KPIs */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:34px}
+.kpi{padding:22px}
+.kpi b{display:block;font-size:clamp(34px,4vw,54px);font-weight:500;letter-spacing:-.03em;line-height:1;margin-bottom:10px;font-variant-numeric:tabular-nums}
+.kpi span{display:block;color:var(--ink);font-size:15px}
+.kpi small{display:block;font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:8px}
+.kpi.hi b{color:var(--teal)}
+
+/* topology switcher */
+.topo{display:grid;grid-template-columns:1fr 1.25fr;gap:44px;align-items:center}
+.topo-box{padding:18px}
+.topo-box svg{width:100%;height:auto;display:block}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 14px}
+.flow{stroke-dasharray:6 8;animation:flow 1.1s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-28}}
+.facts{display:grid;gap:10px;margin-top:18px}
+.fact{display:flex;justify-content:space-between;gap:16px;padding:12px 16px;border-radius:12px;border:1px solid var(--line);font-size:15px}
+.fact span:last-child{font-family:var(--mono);font-size:13px;text-align:right}
+.good{color:var(--pooled)} .bad{color:var(--rose)} .meh{color:var(--local)}
+
+/* simulator */
+.sim{display:grid;grid-template-columns:1.05fr 1fr;gap:18px;margin-top:28px}
+.sim .panel{padding:18px}
+.sim-ctrl{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}
+.sim-ctrl label{font-family:var(--mono);font-size:11px;color:var(--muted);display:flex;align-items:center;gap:10px}
+input[type=range]{accent-color:var(--teal);width:150px}
+.readout{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.ro{border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.ro small{display:block;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.ro b{font-size:24px;font-weight:500;font-variant-numeric:tabular-nums}
+.ro .delta{font-family:var(--mono);font-size:11px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;color:var(--muted);margin:8px 0 2px}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:6px;vertical-align:3px}
+.status{font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:10px;min-height:1.5em}
+.status b{color:var(--ink);font-weight:600}
+
+/* steps */
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:30px}
+.step{padding:22px;transition:border-color .4s,background .4s}
+.step .n{font-family:var(--mono);font-size:12px;color:var(--teal);letter-spacing:.12em}
+.step h3{margin-top:10px}
+.step p{color:var(--muted);font-size:15px}
+.step.lit{border-color:var(--teal);background:rgba(62,230,200,.07)}
+
+/* spark */
+.spark{display:grid;grid-template-columns:1.2fr 1fr;gap:28px;align-items:start;margin-top:26px}
+.layer{display:flex;justify-content:space-between;gap:12px;padding:14px 16px;border-radius:12px;border:1px solid var(--line);margin-top:10px;transition:.25s}
+.layer:hover{border-color:var(--teal);background:rgba(62,230,200,.06)}
+.layer span:last-child{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:right}
+.spec{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.spec .panel{padding:16px}
+.spec b{display:block;font-size:30px;font-weight:500;letter-spacing:-.02em}
+.spec span{font-size:13px;color:var(--muted)}
+
+/* therapy explorer */
+.tx{display:grid;grid-template-columns:1fr 1.1fr;gap:18px;margin-top:26px}
+.tx .panel{padding:20px}
+.field-row{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px 14px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
+.topo>*,.sim>*,.spark>*,.tx>*,.res>*,.cohorts>*,.steps>*,.roll>*,.next>*,.kpis>*{min-width:0}
+.field-row:last-child{border-bottom:0}
+.seg{display:inline-flex;border:1px solid var(--line2);border-radius:999px;overflow:hidden}
+.seg button{padding:5px 12px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.seg button.on{background:var(--teal);color:#021210;font-weight:600}
+.drug{display:grid;grid-template-columns:120px 1fr 60px;gap:12px;align-items:center;margin:14px 0}
+.drug .bar{height:26px;border-radius:6px;background:rgba(255,255,255,.05);overflow:hidden}
+.drug .bar i{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,var(--swarm),var(--teal));width:0;transition:width .6s cubic-bezier(.2,.7,.2,1)}
+.drug b{font-family:var(--mono);font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+.drug.best span{color:var(--teal);font-weight:600}
+
+/* cohorts */
+.cohorts{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:28px}
+.cohort{padding:22px}
+.cohort .reg{font-family:var(--mono);font-size:11px;color:var(--teal);letter-spacing:.12em}
+.cohort h3{margin:8px 0 14px;font-size:22px}
+.mbar{margin:10px 0}
+.mbar div{display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
+.mbar div b{color:var(--ink);font-family:var(--mono);font-weight:600}
+.mbar .t{height:6px;border-radius:3px;background:rgba(255,255,255,.06);margin-top:5px;overflow:hidden}
+.mbar .t i{display:block;height:100%;background:var(--teal);border-radius:3px;width:0;transition:width 1.2s cubic-bezier(.2,.7,.2,1) .3s}
+.scene.in .mbar .t i{width:var(--w)}
+
+/* results */
+.res{display:grid;grid-template-columns:1.4fr 1fr;gap:18px;margin-top:24px}
+.res .panel{padding:20px}
+.chart svg{width:100%;height:auto;display:block}
+.chart text{font-family:var(--mono);font-size:12px;fill:var(--muted)}
+.bigk{font-size:clamp(56px,7vw,96px);font-weight:500;letter-spacing:-.04em;line-height:1;color:var(--teal)}
+
+/* terminal */
+.term{margin-top:26px;overflow:hidden}
+.term .bar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:12px;color:var(--muted)}
+.term .bar i{width:10px;height:10px;border-radius:50%;background:var(--line2);display:inline-block}
+.term .bar .sp{flex:1}
+.term pre{font-family:var(--mono);font-size:13px;line-height:1.6;padding:16px 20px;height:min(52vh,460px);overflow:auto;color:#cfe0e3;white-space:pre-wrap}
+.term .h{color:#fff;font-weight:600} .term .g{color:var(--pooled)} .term .b{color:var(--swarm)} .term .d{color:var(--dim)}
+.cmdline{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:16px}
+.cmd{font-family:var(--mono);font-size:14px;padding:10px 16px;border-radius:10px;background:rgba(0,0,0,.4);border:1px solid var(--line);color:#cfe3f8}
+
+/* rollout */
+.roll{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:28px}
+.roll .panel{padding:20px}
+.roll code{font-family:var(--mono);font-size:12px;color:var(--teal);display:block;margin-top:10px;word-break:break-word}
+.needs{margin-top:16px;padding:6px 20px}
+.need{display:grid;grid-template-columns:140px 1fr;gap:16px;padding:12px 0;border-bottom:1px solid var(--line);font-size:15px}
+.need:last-child{border-bottom:0}
+.need b{font-family:var(--mono);font-size:12px;color:var(--teal);letter-spacing:.08em;text-transform:uppercase;font-weight:600;padding-top:2px}
+
+/* status */
+.stat{margin-top:24px;padding:6px 20px}
+.srow{display:flex;justify-content:space-between;gap:16px;padding:14px 0;border-bottom:1px solid var(--line);font-size:15px}
+.srow:last-child{border-bottom:0}
+.pill{font-family:var(--mono);font-size:11px;padding:4px 10px;border-radius:999px;white-space:nowrap;align-self:center}
+.pill.ok{background:rgba(82,227,166,.12);color:var(--pooled);border:1px solid rgba(82,227,166,.35)}
+.pill.no{background:rgba(255,165,82,.1);color:var(--local);border:1px solid rgba(255,165,82,.35)}
+.next{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:22px}
+.next .panel{padding:20px}
+.next p{color:var(--muted);font-size:15px}
+
+.closing{text-align:center;align-items:center}
+.closing h2{font-size:clamp(40px,7vw,104px)}
+.closing .lede{margin:0 auto}
+.links{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:30px}
+
+@media (max-width:900px){
+  #dots,#hint{display:none}
+  .kpis{grid-template-columns:1fr 1fr}
+  .topo,.sim,.spark,.tx,.res,.cohorts,.steps,.roll,.next{grid-template-columns:1fr}
+  .need{grid-template-columns:1fr;gap:4px}
+  .drug{grid-template-columns:100px 1fr 50px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+  .rv{opacity:1;transform:none}
+  #hero h1 .line span{transform:none}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+<canvas id="field" aria-hidden="true"></canvas>
+<div class="vignette"></div>
+<div class="grain"></div>
+<div id="progress"></div>
+<nav id="dots" aria-label="Scenes"></nav>
+<div id="counter"><b>01</b> / 15</div>
+<div id="hint"><kbd>↑</kbd> <kbd>↓</kbd> or scroll</div>
+
+<main>
+
+<!-- 1 HERO -->
+<section class="scene" id="hero" data-title="Intro" data-shape="0">
+  <div class="wrap">
+    <div class="eyebrow rv">ANCHOR-IBD · proof of concept · synthetic data</div>
+    <h1><span class="line"><span>Learning together,</span></span><span class="line"><span><em>data stays home</em></span></span></h1>
+    <p class="lede rv" style="--d:3">Three hospitals in Sweden and Norway train one model that predicts response to IBD biologics. No patient record leaves a hospital, and no single party holds the model. It runs on <b>NVIDIA DGX Spark</b> with <b>NVIDIA FLARE swarm learning</b>.</p>
+    <div class="typed rv" style="--d:4" id="typed"></div>
+    <div class="hero-meta rv" style="--d:5">
+      <div><b>15 scenes</b>Scroll or use arrow keys</div>
+      <div><b>2 live demos</b>Train a swarm in your browser</div>
+      <div><b>0 records moved</b>Only model weights travel</div>
+    </div>
+    <div class="partners rv" style="--d:6">
+      <span class="chip">Region Östergötland</span><span class="chip">Örebro University</span><span class="chip">Oslo University Hospital</span><span class="chip">RISE</span><span class="chip">AbbVie</span>
+    </div>
+  </div>
+  <div class="scrollcue"></div>
+</section>
+
+<!-- 2 PROBLEM -->
+<section class="scene" id="problem" data-title="The problem" data-shape="2">
+  <div class="wrap">
+    <div class="eyebrow rv">01 · The problem</div>
+    <h2 class="rv" style="--d:1">Each registry alone is <em>too small</em></h2>
+    <p class="lede rv" style="--d:2">Sweden and Norway have comparable healthcare systems and strong IBD registries, but research stays national. Cohorts are too small for treatment-response and subgroup studies, and patient data cannot simply be pooled across the border under GDPR, national law and the EHDS.</p>
+    <div class="kpis">
+      <div class="panel kpi rv" style="--d:3"><b data-count="100000">0</b><span>people with IBD in Sweden</span><small>SWIBREG</small></div>
+      <div class="panel kpi rv" style="--d:4"><b data-count="40000">0</b><span>people with IBD in Norway</span><small>NorIBD</small></div>
+      <div class="panel kpi hi rv" style="--d:5"><b data-count="140000">0</b><span>together, if they could learn as one</span><small>combined cohort</small></div>
+      <div class="panel kpi rv" style="--d:6"><b data-count="40" data-pre="+" data-suf="%">0</b><span>more patients than Sweden alone</span><small>for subgroups too rare nationally</small></div>
+    </div>
+    <p class="tiny rv" style="--d:7;margin-top:16px">Approximate figures from the ANCHOR-IBD project description (Vinnova 2026-00990).</p>
+  </div>
+</section>
+
+<!-- 3 TOPOLOGY -->
+<section class="scene" id="idea" data-title="Three ways" data-shape="1">
+  <div class="wrap topo">
+    <div>
+      <div class="eyebrow rv">02 · The idea</div>
+      <h2 class="rv" style="--d:1">Move the <em>model</em>, not the patients</h2>
+      <p class="lede rv" style="--d:2">There are three ways to learn from three hospitals. Pick one and watch what travels over the network.</p>
+      <div class="tabs rv" style="--d:3" id="topoTabs" role="tablist">
+        <button class="chip" data-t="central" role="tab">Pool the data</button>
+        <button class="chip" data-t="fedavg" role="tab">Central server (FedAvg)</button>
+        <button class="chip on" data-t="swarm" role="tab">Swarm learning</button>
+      </div>
+      <div class="facts rv" style="--d:4" id="topoFacts"></div>
+    </div>
+    <div class="panel topo-box rv" style="--d:3">
+      <svg id="topoSvg" viewBox="0 0 600 460" role="img" aria-label="Network of three hospitals and a central node; what moves depends on the selected approach"></svg>
+    </div>
+  </div>
+</section>
+
+<!-- 4 LIVE SIM -->
+<section class="scene" id="sim" data-title="Live simulation" data-shape="3">
+  <div class="wrap">
+    <div class="eyebrow rv">03 · Live simulation</div>
+    <h2 class="rv" style="--d:1">Train a swarm, <em>right here</em></h2>
+    <p class="lede rv" style="--d:2">This runs in your browser. Three synthetic hospital cohorts are generated with different case mixes. Each round, every hospital trains a small model on its own patients, one hospital averages the updates, and the new shared model goes back. Scores are measured on new patients at each hospital. Add privacy noise and see what it costs.</p>
+    <div class="sim">
+      <div class="panel rv" style="--d:3">
+        <svg id="simNet" viewBox="0 0 560 380" role="img" aria-label="Three hospitals; the one averaging this round is highlighted"></svg>
+        <div class="sim-ctrl">
+          <button class="btn primary" id="simPlay">▶ Play</button>
+          <button class="btn" id="simStep">Step one round</button>
+          <button class="btn" id="simReset">New patients</button>
+          <label for="simNoise">Privacy noise <input type="range" id="simNoise" min="0" max="0.6" step="0.05" value="0"> <span id="simNoiseV" class="num">0.00</span></label>
+        </div>
+        <div class="status" id="simStatus">Press <b>Play</b> to start round 1.</div>
+      </div>
+      <div class="panel rv" style="--d:4">
+        <div class="legend"><span><i style="background:var(--swarm)"></i>Swarm, all hospitals</span><span><i style="background:var(--local)"></i>Each hospital alone</span><span><i style="background:var(--pooled)"></i>Pooled ceiling</span></div>
+        <svg id="simChart" viewBox="0 0 560 300" role="img" aria-label="Average AUROC per round for the swarm model, with reference lines for alone and pooled"></svg>
+        <div class="readout" id="simRO"></div>
+        <p class="tiny" style="margin-top:12px">In-browser logistic model on synthetic patients, so numbers vary with each new cohort. The measured PoC results are in scene 09.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 5 ROUND -->
+<section class="scene" id="round" data-title="One round" data-shape="1">
+  <div class="wrap">
+    <div class="eyebrow rv">04 · How a round works</div>
+    <h2 class="rv" style="--d:1">One round in <em>four steps</em></h2>
+    <p class="lede rv" style="--d:2">What NVIDIA FLARE’s swarm workflow does on the three Sparks, every round.</p>
+    <div class="steps" id="steps">
+      <div class="panel step rv" style="--d:3"><div class="n">STEP 1</div><h3>Train locally</h3><p>Each hospital trains the shared model for a few epochs on its own patients, on its own Spark’s GPU.</p></div>
+      <div class="panel step rv" style="--d:4"><div class="n">STEP 2</div><h3>Send to the averager</h3><p>One hospital is picked at random. The others send it their weights, encrypted for that hospital only.</p></div>
+      <div class="panel step rv" style="--d:5"><div class="n">STEP 3</div><h3>Average</h3><p>The averaging hospital weights each update by its number of training steps and combines them.</p></div>
+      <div class="panel step rv" style="--d:6"><div class="n">STEP 4</div><h3>Share and repeat</h3><p>The new model goes back to every hospital. Each keeps the best one, by validation loss.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 6 SPARK -->
+<section class="scene" id="spark" data-title="On the Sparks" data-shape="4">
+  <div class="wrap">
+    <div class="eyebrow rv">05 · How the Sparks handle it</div>
+    <h2 class="rv" style="--d:1">One Spark per hospital, <em>not</em> a cluster</h2>
+    <p class="lede rv" style="--d:2">Each Spark is an independent site inside its hospital’s network. A small coordinator host only admits sites and starts jobs. Hover the layers.</p>
+    <div class="spark">
+      <div class="panel rv" style="--d:3;padding:20px">
+        <div class="tiny">INSIDE ONE HOSPITAL’S DGX SPARK</div>
+        <div class="layer"><span>NVFlare client</span><span>container · own certificate and key</span></div>
+        <div class="layer"><span>Training script</span><span>PyTorch on the GB10 GPU</span></div>
+        <div class="layer"><span>OMOP CDM extract</span><span>mounted read-only, never sent</span></div>
+        <div class="layer"><span>Averaging, when it is this hospital’s turn</span><span>swarm aggregator role</span></div>
+        <div class="layer"><span>Network</span><span>outbound only · mTLS · port 8002</span></div>
+      </div>
+      <div class="spec rv" style="--d:4">
+        <div class="panel"><b>4.6 KB</b><span>weights sent per hospital per round (1,185 weights)</span></div>
+        <div class="panel"><b>0</b><span>inbound firewall rules at a hospital</span></div>
+        <div class="panel"><b>128 GB</b><span>unified memory per Spark, room for image and language models later</span></div>
+        <div class="panel"><b>1 host</b><span>coordinator, any small Linux machine; no GPU, no data, no weights</span></div>
+        <p class="small" style="grid-column:1/-1">Honest about compute: this model trains in seconds even on a CPU. The Spark is the hospital’s own GPU node for the next models, such as endoscopy images and clinical text.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 7 THERAPY EXPLORER -->
+<section class="scene" id="therapy" data-title="What it predicts" data-shape="5">
+  <div class="wrap">
+    <div class="eyebrow rv">06 · What we train</div>
+    <h2 class="rv" style="--d:1">Which biologic is <em>most likely</em> to work?</h2>
+    <p class="lede rv" style="--d:2">The model predicts steroid-free remission 52 weeks after starting a biologic. Because the drug is an input, it can compare all four for the same patient. Describe a patient; the bars come from the swarm model trained in your browser.</p>
+    <div class="tx">
+      <div class="panel rv" style="--d:3" id="txForm"></div>
+      <div class="panel rv" style="--d:4">
+        <div class="tiny">PREDICTED CHANCE OF REMISSION AT WEEK 52</div>
+        <div id="txBars"></div>
+        <p class="small" id="txNote"></p>
+        <p class="tiny" style="margin-top:12px">Synthetic research model. Not for clinical decisions.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 8 COHORTS -->
+<section class="scene" id="cohorts" data-title="The data" data-shape="0">
+  <div class="wrap">
+    <div class="eyebrow rv">07 · The data</div>
+    <h2 class="rv" style="--d:1">Three cohorts, <em>three</em> case mixes</h2>
+    <p class="lede rv" style="--d:2">Each Spark holds its own synthetic OMOP CDM extract: person, condition, drug, measurement and observation tables, with real ICD-10, ATC and LOINC codes. The same feature code runs at every site.</p>
+    <div class="cohorts">
+      <div class="panel cohort rv" style="--d:3"><div class="reg">SWIBREG · SWEDEN</div><h3>Region Östergötland</h3>
+        <div class="mbar"><div><span>Patients</span><b>600</b></div><div class="t"><i style="--w:100%"></i></div></div>
+        <div class="mbar"><div><span>Responders</span><b>41%</b></div><div class="t"><i style="--w:41%"></i></div></div>
+        <div class="mbar"><div><span>Prior anti-TNF</span><b>40%</b></div><div class="t"><i style="--w:40%"></i></div></div>
+        <div class="mbar"><div><span>Ustekinumab</span><b>14%</b></div><div class="t"><i style="--w:14%"></i></div></div></div>
+      <div class="panel cohort rv" style="--d:4"><div class="reg">SWIBREG · SWEDEN</div><h3>Örebro University Hospital</h3>
+        <div class="mbar"><div><span>Patients</span><b>450</b></div><div class="t"><i style="--w:75%"></i></div></div>
+        <div class="mbar"><div><span>Responders</span><b>45%</b></div><div class="t"><i style="--w:45%"></i></div></div>
+        <div class="mbar"><div><span>Prior anti-TNF</span><b>35%</b></div><div class="t"><i style="--w:35%"></i></div></div>
+        <div class="mbar"><div><span>Ustekinumab</span><b>17%</b></div><div class="t"><i style="--w:17%"></i></div></div></div>
+      <div class="panel cohort rv" style="--d:5"><div class="reg">NORIBD · NORWAY</div><h3>Oslo University Hospital</h3>
+        <div class="mbar"><div><span>Patients</span><b>350</b></div><div class="t"><i style="--w:58%"></i></div></div>
+        <div class="mbar"><div><span>Responders</span><b>52%</b></div><div class="t"><i style="--w:52%"></i></div></div>
+        <div class="mbar"><div><span>Prior anti-TNF</span><b>15%</b></div><div class="t"><i style="--w:15%"></i></div></div>
+        <div class="mbar"><div><span>Ustekinumab</span><b>46%</b></div><div class="t"><i style="--w:46%"></i></div></div></div>
+    </div>
+    <p class="tiny rv" style="--d:6;margin-top:16px">Oslo resembles a newly diagnosed inception cohort. A further 3,000 new synthetic patients per site, never used in training, measure every result.</p>
+  </div>
+</section>
+
+<!-- 9 RESULTS -->
+<section class="scene" id="results" data-title="Results" data-shape="2">
+  <div class="wrap">
+    <div class="eyebrow rv">08 · Results of the PoC run</div>
+    <h2 class="rv" style="--d:1">Together beats alone, <em>at every hospital</em></h2>
+    <div class="res">
+      <div class="panel chart rv" style="--d:2">
+        <div class="tabs" id="resTabs"><button class="chip on" data-v="site">By hospital</button><button class="chip" data-v="sex">Women and men</button></div>
+        <div class="legend"><span><i style="background:var(--local)"></i>Alone</span><span><i style="background:var(--swarm)"></i>Swarm</span><span><i style="background:var(--pooled)"></i>Pooled (not allowed)</span></div>
+        <svg id="resChart" viewBox="0 0 640 330" role="img" aria-label="AUROC by hospital or by sex for alone, swarm and pooled training"></svg>
+        <p class="tiny">AUROC on 3,000 new synthetic patients per hospital, mean of 5 training runs. Axis starts at 0.5 (chance).</p>
+      </div>
+      <div class="panel rv" style="--d:3;display:flex;flex-direction:column;gap:16px;justify-content:center">
+        <div class="bigk"><span data-count="70" data-suf="%">0</span></div>
+        <p class="lede" style="font-size:18px">of the gain from pooling all data, <b>without moving a single record</b>.</p>
+        <p class="mono small"><span style="color:var(--local)">0.714</span> alone → <b style="color:var(--swarm)">0.728</b> swarm → <span style="color:var(--pooled)">0.734</span> pooled</p>
+        <p class="small">For women and men, predicted response rates match observed rates (44.4% vs 44.7%, 49.0% vs 50.0%).</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 10 CURVE + PRIVACY -->
+<section class="scene" id="curve" data-title="Rounds and privacy" data-shape="3">
+  <div class="wrap">
+    <div class="eyebrow rv">09 · Learning curve and privacy</div>
+    <h2 class="rv" style="--d:1">Better each round, with a <em>privacy dial</em></h2>
+    <div class="res">
+      <div class="panel chart rv" style="--d:2">
+        <div class="tiny">SHARED MODEL, 30 ROUNDS · HOVER FOR VALUES</div>
+        <svg id="curveChart" viewBox="0 0 640 340" role="img" aria-label="AUROC per round for each hospital and overall, with alone and pooled reference lines"></svg>
+      </div>
+      <div class="panel rv" style="--d:3">
+        <div class="tiny">NOISE ADDED TO EACH UPDATE BEFORE IT LEAVES THE HOSPITAL</div>
+        <div style="margin:18px 0 8px"><input type="range" id="dpSlider" min="0" max="3" step="1" value="0" style="width:100%" aria-label="Noise multiplier"></div>
+        <div class="tiny" style="display:flex;justify-content:space-between"><span>0</span><span>0.05</span><span>0.1</span><span>0.2</span></div>
+        <div class="bigk" style="margin-top:24px;font-size:72px"><span id="dpVal">0.728</span></div>
+        <p class="small" id="dpNote" style="margin-top:8px"></p>
+        <p class="tiny" style="margin-top:14px">Clipping plus Gaussian noise per update. No formal privacy budget (ε) is computed yet.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 11 TERMINAL -->
+<section class="scene" id="demo" data-title="Run it" data-shape="4">
+  <div class="wrap">
+    <div class="eyebrow rv">10 · The real thing</div>
+    <h2 class="rv" style="--d:1">One command, <em>three hospitals</em></h2>
+    <p class="lede rv" style="--d:2">The repository’s demo script creates real certificates, starts a coordinator and three hospital clients as separate processes, and submits the swarm job as the RISE admin. This is a replay of a real run: watch the averaging hospital change, and the coordinator do no averaging at all.</p>
+    <div class="cmdline rv" style="--d:3"><span class="cmd">bash demo/run_demo.sh</span><button class="btn" id="termReplay">↻ Replay</button><button class="btn" id="termCopy">Copy command</button></div>
+    <div class="panel term rv" style="--d:4"><div class="bar"><i></i><i></i><i></i><span class="sp">anchor-ibd-fl-poc · NVIDIA FLARE 2.9 · provisioned mTLS</span><span id="termState">ready</span></div><pre id="term"></pre></div>
+  </div>
+</section>
+
+<!-- 12 ROLLOUT -->
+<section class="scene" id="rollout" data-title="Rollout" data-shape="5">
+  <div class="wrap">
+    <div class="eyebrow rv">11 · Rollout on Sparks</div>
+    <h2 class="rv" style="--d:1">From one Spark to <em>three hospitals</em></h2>
+    <div class="roll">
+      <div class="panel rv" style="--d:2"><div class="tiny">1 · IDENTITIES</div><h3 style="margin-top:8px">Certificates</h3><p class="small">RISE creates one kit per participant and sends each hospital only its own.</p><code>nvflare provision -p deploy/project.yml</code></div>
+      <div class="panel rv" style="--d:3"><div class="tiny">2 · COORDINATOR</div><h3 style="margin-top:8px">Any small host</h3><p class="small">Admits sites and starts jobs. Ports 8002 and 8003 open here only.</p><code>deploy/run_site.sh server &lt;kit&gt;</code></div>
+      <div class="panel rv" style="--d:4"><div class="tiny">3 · EACH SPARK</div><h3 style="margin-top:8px">Hospital client</h3><p class="small">Build the image, check the GPU, mount the OMOP extract read-only.</p><code>deploy/run_site.sh client &lt;kit&gt; &lt;data&gt; &lt;ip&gt;</code></div>
+      <div class="panel rv" style="--d:5"><div class="tiny">4 · SUBMIT</div><h3 style="margin-top:8px">Start training</h3><p class="small">The admin submits the swarm job to the deployment.</p><code>job.py --workflow swarm --env prod</code></div>
+    </div>
+    <div class="panel needs rv" style="--d:6">
+      <div class="need"><b>Hardware</b><span>One DGX Spark per hospital, one small Linux host as coordinator</span></div>
+      <div class="need"><b>Network</b><span>DNS name for the coordinator; hospitals need outbound TCP 8002 only</span></div>
+      <div class="need"><b>Software</b><span>DGX OS with Docker, NVIDIA PyTorch container from NGC, NVIDIA FLARE 2.9</span></div>
+      <div class="need"><b>Data</b><span>An OMOP CDM extract per hospital; real data needs ethics approval, a DPIA and data agreements</span></div>
+      <div class="need"><b>People</b><span>An IT contact at each hospital and one admin at RISE</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 13 STATUS -->
+<section class="scene" id="status" data-title="Status" data-shape="2">
+  <div class="wrap">
+    <div class="eyebrow rv">12 · Status</div>
+    <h2 class="rv" style="--d:1">What has run, and <em>what has not</em></h2>
+    <div class="panel stat rv" style="--d:2">
+      <div class="srow"><span>Comparison of alone, federated and pooled training over 5 runs</span><span class="pill ok">Ran</span></div>
+      <div class="srow"><span>NVIDIA FLARE simulator: swarm and FedAvg, with and without noise</span><span class="pill ok">Ran</span></div>
+      <div class="srow"><span>Certificates, coordinator and three hospital processes over mTLS; the one-command demo</span><span class="pill ok">Ran</span></div>
+      <div class="srow"><span>Docker image, single-Spark compose setup, per-site launcher</span><span class="pill no">Not yet run</span></div>
+      <div class="srow"><span>DGX Spark hardware and the NGC base image on ARM64</span><span class="pill no">Not yet run</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 14 NEXT -->
+<section class="scene" id="next" data-title="Next steps" data-shape="1">
+  <div class="wrap">
+    <div class="eyebrow rv">13 · Next steps</div>
+    <h2 class="rv" style="--d:1">Toward the <em>follow-on</em> project</h2>
+    <div class="next">
+      <div class="panel rv" style="--d:2"><div class="tiny">WP2</div><h3 style="margin-top:8px">Real data path</h3><p>ETL from SWIBREG and NorIBD exports into OMOP. Agree the outcome and variables, including sex-disaggregated ones.</p></div>
+      <div class="panel rv" style="--d:3"><div class="tiny">WP1 · WP2</div><h3 style="margin-top:8px">Stronger privacy</h3><p>A privacy accountant to report ε. Secure aggregation or homomorphic encryption.</p></div>
+      <div class="panel rv" style="--d:4"><div class="tiny">FOLLOW-ON</div><h3 style="margin-top:8px">Real Sparks</h3><p>Run at Region Östergötland, Örebro and OUS once governance and ethics approval allow real data.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 15 CLOSING -->
+<section class="scene closing" id="end" data-title="Thanks" data-shape="0">
+  <div class="wrap">
+    <div class="eyebrow rv" style="justify-content:center">ANCHOR-IBD</div>
+    <h2 class="rv" style="--d:1">Zero records moved.<br><em>One shared model.</em></h2>
+    <p class="lede rv" style="--d:2">Three hospitals, two countries, no central model holder, and about 70% of the gain from pooling, on synthetic data today and ready for the governance work that real data needs.</p>
+    <div class="links rv" style="--d:3"><a class="btn primary" href="#sim">Train the swarm again</a><a class="btn" href="#hero">Back to the start</a></div>
+    <p class="tiny rv" style="--d:4;margin-top:26px">RISE · Region Östergötland · Örebro University · Oslo University Hospital · AbbVie · Vinnova 2026-00990</p>
+  </div>
+</section>
+
+</main>
+
+<script>
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const DPR = Math.min(2, devicePixelRatio || 1);
+const lerp = (a, b, k) => a + (b - a) * k;
+const NS = "http://www.w3.org/2000/svg";
+const S = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+const ST = (parent, x, y, txt, attrs) => { const e = S("text", Object.assign({x, y}, attrs || {}), parent); e.textContent = txt; return e; };
+const COL = {teal: "#3ee6c8", swarm: "#5ab8ff", local: "#ffa552", pooled: "#52e3a6", muted: "#8ea3ab", dim: "#5a6e75", line: "rgba(255,255,255,.09)", ink: "#eaf2f4", rose: "#ff7aa8"};
+const HOSP = ["Östergötland", "Örebro", "Oslo"];
+
+/* ============ BACKGROUND FIELD ============ */
+const field = $("#field"), fctx = field.getContext("2d");
+const N = innerWidth < 700 ? 650 : 1300;
+const P = Array.from({length: N}, () => ({x: Math.random() * innerWidth, y: Math.random() * innerHeight, s: Math.random()}));
+let shape = 0, fieldAlpha = 1, mouse = {x: -999, y: -999}, FW = 0, FH = 0, curScene = 0;
+function resizeField() { FW = innerWidth; FH = innerHeight; field.width = FW * DPR; field.height = FH * DPR; fctx.setTransform(DPR, 0, 0, DPR, 0, 0); }
+resizeField(); addEventListener("resize", resizeField);
+addEventListener("pointermove", e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+const HUB = [[-1, 0, .45], [1, 0, .45], [0, 0, -1.05]];
+function target(i, t) {
+  const u = i / N, ga = 2.39996323;
+  let x, y, z;
+  switch (shape) {
+    case 0: { // three hospitals: three orbiting clusters
+      const h = i % 3, k = Math.floor(i / 3), uu = k / (N / 3);
+      const yy = 1 - 2 * uu, r = Math.sqrt(Math.max(0, 1 - yy * yy)), p = k * ga + t * .4;
+      const R = .36 + .03 * Math.sin(t * 2 + h * 2);
+      x = HUB[h][0] + Math.cos(p) * r * R; y = HUB[h][1] + yy * R; z = HUB[h][2] + Math.sin(p) * r * R; break; }
+    case 1: { // network: particles travelling along the three links
+      const e = i % 3, a = HUB[e], b = HUB[(e + 1) % 3], f = ((i * .61803) % 1 + t * .12) % 1;
+      const j = Math.sin(i * 12.9898) * .04;
+      x = lerp(a[0], b[0], f) + j; y = Math.sin(f * Math.PI) * .18 * ((i % 2) ? 1 : -1) + j; z = lerp(a[2], b[2], f); break; }
+    case 2: { // sphere (one shared model)
+      y = 1 - 2 * u; const r = Math.sqrt(1 - y * y), p = i * ga;
+      x = Math.cos(p) * r; z = Math.sin(p) * r; break; }
+    case 3: { // terrain (learning landscape)
+      const cols = Math.round(Math.sqrt(N)), c = i % cols, rr = Math.floor(i / cols), rows = Math.ceil(N / cols);
+      x = (c / cols - .5) * 3; z = (rr / rows - .5) * 3;
+      y = .26 * Math.sin(2.2 * x + t * .9) * Math.cos(2 * z + t * .6) - .2; break; }
+    case 4: { // grid box (hardware)
+      const f = i % 6, a = ((i * .618) % 1) * 2 - 1, b = ((i * .381966 * 7) % 1) * 2 - 1, s = .8;
+      [x, y, z] = [[s, a * s, b * s], [-s, a * s, b * s], [a * s, s, b * s], [a * s, -s, b * s], [a * s, b * s, s], [a * s, b * s, -s]][f]; break; }
+    default: { // helix (biology)
+      const strand = i % 2, k = u * 26 + t * .5;
+      x = (u - .5) * 4.2; y = Math.cos(k + strand * Math.PI) * .42; z = Math.sin(k + strand * Math.PI) * .42;
+      if (i % 9 === 0) { const m = ((i * .37) % 1) * 2 - 1; y = Math.cos(k) * .42 * m; z = Math.sin(k) * .42 * m; } }
+  }
+  const ry = t * (shape === 5 ? .05 : shape === 0 || shape === 1 ? .1 : .16), rx = shape === 3 ? .55 : shape === 0 || shape === 1 ? .5 : .32;
+  let X = x * Math.cos(ry) - z * Math.sin(ry), Z = x * Math.sin(ry) + z * Math.cos(ry);
+  let Y = y * Math.cos(rx) - Z * Math.sin(rx); Z = y * Math.sin(rx) + Z * Math.cos(rx);
+  const scale = Math.min(FW, FH) * (shape === 5 ? .3 : shape <= 1 ? .3 : .36), persp = 2.6 / (2.6 + Z);
+  const cx = FW * (curScene === 0 && FW > 900 ? .76 : .5);
+  return [cx + X * scale * persp, FH * .5 + Y * scale * persp, Z];
+}
+let tF = 0;
+function drawField() {
+  tF += reduced ? 0 : .016;
+  fctx.clearRect(0, 0, FW, FH);
+  for (let i = 0; i < N; i++) {
+    const p = P[i], [tx, ty, tz] = target(i, tF);
+    p.x = lerp(p.x, tx, .055); p.y = lerp(p.y, ty, .055);
+    const dx = p.x - mouse.x, dy = p.y - mouse.y, d2 = dx * dx + dy * dy;
+    if (d2 < 12000) { const f = (12000 - d2) / 12000 * 14, d = Math.sqrt(d2) || 1; p.x += dx / d * f; p.y += dy / d * f; }
+    const depth = Math.max(0, Math.min(1, (1 - tz) * .5)), a = (.25 + depth * .75) * fieldAlpha;
+    const hue = shape === 0 ? [168, 205, 150][i % 3] + p.s * 20 : 165 + p.s * 50 - depth * 15;
+    fctx.fillStyle = `hsla(${hue},85%,${60 + depth * 10}%,${a})`;
+    const sz = (1 + depth * 1.9) * (p.s > .97 ? 2 : 1);
+    fctx.fillRect(p.x, p.y, sz, sz);
+  }
+  requestAnimationFrame(drawField);
+}
+requestAnimationFrame(drawField);
+
+/* ============ SCENES / NAV ============ */
+const scenes = $$(".scene"), dots = $("#dots");
+scenes.forEach(s => {
+  const b = document.createElement("button");
+  b.setAttribute("aria-label", s.dataset.title);
+  b.innerHTML = `<span>${s.dataset.title}</span>`;
+  b.onclick = () => s.scrollIntoView({behavior: reduced ? "auto" : "smooth"});
+  dots.appendChild(b);
+});
+const enter = {};
+const io = new IntersectionObserver(es => es.forEach(e => {
+  if (e.isIntersecting && !e.target.classList.contains("in")) { e.target.classList.add("in"); (enter[e.target.id] || (() => {}))(); }
+}), {threshold: .18});
+scenes.forEach(s => io.observe(s));
+function onScroll() {
+  const mid = scrollY + innerHeight * .45;
+  let idx = 0;
+  scenes.forEach((s, i) => { if (s.offsetTop <= mid) idx = i; });
+  if (idx !== curScene) { curScene = idx; shape = +scenes[idx].dataset.shape; fieldAlpha = idx === 0 || idx === scenes.length - 1 ? 1 : .3; }
+  $$("#dots button").forEach((b, i) => b.classList.toggle("on", i === curScene));
+  $("#counter").innerHTML = `<b>${String(curScene + 1).padStart(2, "0")}</b> / ${scenes.length}`;
+  const max = document.documentElement.scrollHeight - innerHeight;
+  $("#progress").style.width = (max > 0 ? scrollY / max * 100 : 0) + "%";
+}
+addEventListener("scroll", onScroll, {passive: true}); onScroll();
+addEventListener("keydown", e => {
+  if (e.target.matches("input, textarea")) return;
+  let n = null;
+  if (["ArrowDown", "PageDown"].includes(e.key) || (e.key === " " && !e.shiftKey)) n = curScene + 1;
+  if (["ArrowUp", "PageUp"].includes(e.key) || (e.key === " " && e.shiftKey)) n = curScene - 1;
+  if (e.key === "Home") n = 0; if (e.key === "End") n = scenes.length - 1;
+  if (n !== null) { e.preventDefault(); scenes[Math.max(0, Math.min(scenes.length - 1, n))].scrollIntoView({behavior: reduced ? "auto" : "smooth"}); }
+});
+
+/* typed text */
+const phrases = ["> train(local_patients) → share(weights)", "> aggregator = random(hospitals)", "> records_moved == 0", "> auroc: 0.714 alone → 0.728 together"];
+let pi = 0, ci = 0, del = false;
+(function type() {
+  const el = $("#typed"), ph = phrases[pi];
+  if (reduced) { el.textContent = ph; return; }
+  el.textContent = ph.slice(0, ci);
+  if (!del && ci < ph.length) ci++; else if (!del) { del = true; return setTimeout(type, 1600); }
+  else if (ci > 0) ci--; else { del = false; pi = (pi + 1) % phrases.length; }
+  setTimeout(type, del ? 22 : 48);
+})();
+
+/* count-ups */
+function countUp(root) {
+  root.querySelectorAll("[data-count]").forEach(el => {
+    const to = +el.dataset.count, pre = el.dataset.pre || "", suf = el.dataset.suf || "", t0 = performance.now(), D = 1400;
+    const fmt = v => pre + Math.round(v).toLocaleString("en") + suf;
+    if (reduced) { el.textContent = fmt(to); return; }
+    const f = now => { const u = Math.min(1, (now - t0) / D); el.textContent = fmt(to * (1 - Math.pow(1 - u, 3))); if (u < 1) requestAnimationFrame(f); };
+    requestAnimationFrame(f);
+  });
+}
+enter.problem = () => countUp($("#problem"));
+
+/* ============ TOPOLOGY SWITCHER ============ */
+const TOPO = {
+  central: {facts: [["Patient records leave the hospital", "yes", "bad"], ["Who holds the model", "one central party", "bad"], ["Legal across the border", "hard (GDPR, EHDS)", "bad"], ["Accuracy", "ceiling", "good"]]},
+  fedavg: {facts: [["Patient records leave the hospital", "no", "good"], ["Who holds the model", "the central server", "meh"], ["What travels", "model weights", "good"], ["Accuracy", "close to the ceiling", "good"]]},
+  swarm: {facts: [["Patient records leave the hospital", "no", "good"], ["Who holds the model", "every hospital, in turn", "good"], ["What the coordinator sees", "start / stop only", "good"], ["Accuracy", "same as FedAvg", "good"]]},
+};
+const topo = {mode: "swarm", t0: 0, agg: 0, round: 0};
+const tsvg = $("#topoSvg");
+const TN = [{x: 110, y: 320}, {x: 490, y: 320}, {x: 300, y: 410}], TC = {x: 300, y: 80};
+function drawTopo() {
+  tsvg.innerHTML = "";
+  const m = topo.mode, hubCol = m === "swarm" ? COL.dim : COL.swarm;
+  const label = m === "central" ? "Central database" : m === "fedavg" ? "Central server" : "Coordinator";
+  TN.forEach(n => S("line", {x1: TC.x, y1: TC.y + 28, x2: n.x, y2: n.y - 34, stroke: m === "swarm" ? "rgba(255,255,255,.14)" : "rgba(90,184,255,.45)", "stroke-width": m === "swarm" ? 1.5 : 2.5, "stroke-dasharray": m === "swarm" ? "4 7" : ""}, tsvg));
+  if (m === "swarm") for (let i = 0; i < 3; i++) for (let j = i + 1; j < 3; j++) S("line", {x1: TN[i].x, y1: TN[i].y, x2: TN[j].x, y2: TN[j].y, stroke: "rgba(62,230,200,.35)", "stroke-width": 2.5, class: "lk", "data-i": i, "data-j": j}, tsvg);
+  S("rect", {x: TC.x - 105, y: TC.y - 28, width: 210, height: 56, rx: 14, fill: "rgba(12,24,30,.95)", stroke: hubCol, "stroke-width": m === "swarm" ? 1.5 : 2, "stroke-dasharray": m === "swarm" ? "6 5" : ""}, tsvg);
+  ST(tsvg, TC.x, TC.y + 6, label, {"text-anchor": "middle", fill: COL.ink, "font-size": 16, "font-family": "Space Grotesk"});
+  TN.forEach((n, i) => {
+    S("circle", {cx: n.x, cy: n.y, r: 34, fill: "rgba(12,24,30,.95)", stroke: COL.teal, "stroke-width": 1.5, class: "hn"}, tsvg);
+    ST(tsvg, n.x, n.y + 58, HOSP[i], {"text-anchor": "middle", fill: COL.ink, "font-size": 15, "font-family": "Space Grotesk"});
+  });
+  topo.dots = TN.map(() => S("circle", {r: 7, fill: COL.swarm, opacity: 0}, tsvg));
+  topo.tag = ST(tsvg, 300, 455, "", {"text-anchor": "middle", fill: COL.muted, "font-size": 12, "font-family": "JetBrains Mono"});
+  $("#topoFacts").innerHTML = TOPO[m].facts.map(([a, b, c]) => `<div class="fact"><span>${a}</span><span class="${c}">${b}</span></div>`).join("");
+}
+function animTopo(now) {
+  if (!topo.t0) topo.t0 = now;
+  let t = (now - topo.t0) / 2600;
+  if (t >= 1) { topo.t0 = now; t = 0; topo.round++; topo.agg = Math.floor(Math.random() * 3); }
+  const m = topo.mode, a = topo.agg, hubs = $$("#topoSvg .hn");
+  hubs.forEach((h, i) => { h.setAttribute("fill", m === "swarm" && i === a ? "rgba(62,230,200,.22)" : "rgba(12,24,30,.95)"); h.setAttribute("stroke-width", m === "swarm" && i === a ? 3 : 1.5); });
+  $$("#topoSvg .lk").forEach(l => l.setAttribute("stroke", (+l.dataset.i === a || +l.dataset.j === a) ? "rgba(62,230,200,.75)" : "rgba(62,230,200,.2)"));
+  TN.forEach((n, i) => {
+    const d = topo.dots[i];
+    if (!d) return;
+    const tgt = m === "swarm" ? TN[a] : {x: TC.x, y: TC.y + 20};
+    if ((m === "swarm" && i === a) || t > .94) { d.setAttribute("opacity", 0); return; }
+    const inb = m === "central" ? true : t < .47, u = m === "central" ? t / .94 : inb ? t / .47 : (t - .47) / .47;
+    const A = inb ? n : tgt, B = inb ? tgt : n, v = .15 + .7 * Math.min(1, u);
+    d.setAttribute("cx", A.x + (B.x - A.x) * v); d.setAttribute("cy", A.y + (B.y - A.y) * v);
+    d.setAttribute("fill", m === "central" ? COL.rose : inb ? COL.muted : COL.swarm);
+    d.setAttribute("r", m === "central" ? 9 : 7); d.setAttribute("opacity", 1);
+  });
+  topo.tag.textContent = m === "central" ? "patient records travel to one place" : m === "fedavg" ? "weights to the server, model back" : `round ${topo.round + 1}: ${HOSP[a]} averages`;
+  requestAnimationFrame(animTopo);
+}
+$$("#topoTabs .chip").forEach(b => b.onclick = () => { $$("#topoTabs .chip").forEach(x => x.classList.toggle("on", x === b)); topo.mode = b.dataset.t; drawTopo(); });
+drawTopo(); requestAnimationFrame(animTopo);
+
+/* ============ IN-BROWSER SWARM SIMULATION ============ */
+// Seeded RNG and synthetic cohorts with the same ground truth as ibdfl/synth.py (simplified).
+function rng(seed) { let s = seed >>> 0; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const gauss = r => Math.sqrt(-2 * Math.log(r() + 1e-12)) * Math.cos(2 * Math.PI * r());
+const SITES = [
+  {n: 480, pcd: .55, dur: 8, ptnf: .40, drugs: [.35, .35, .25, .05], shift: 0},
+  {n: 360, pcd: .50, dur: 7, ptnf: .35, drugs: [.30, .30, .30, .10], shift: -.1},
+  {n: 280, pcd: .45, dur: 1.5, ptnf: .15, drugs: [.25, .15, .15, .45], shift: .15},
+];
+const DRUGS = ["Infliximab", "Adalimumab", "Vedolizumab", "Ustekinumab"];
+function trueLogit(p) {
+  const at = p.drug <= 1, vdz = p.drug === 2, ust = p.drug === 3;
+  return .35 - 1.1 * p.prior * at - .3 * p.prior * !at + 1.0 * vdz * !p.cd - .7 * vdz * p.cd + .2 * ust + 1.2 * ust * p.cd * p.prior
+    - .7 * p.female * at - .6 * p.smoker * p.cd - .45 * (Math.log(p.crp) - Math.log(8)) - .35 * (Math.log(p.cal) - Math.log(600))
+    + .07 * (p.alb - 38) - .15 * p.dur / 5 + .4 * p.imm * (p.drug === 0) - .3 * p.ster;
+}
+function patient(site, r) {
+  const s = SITES[site], p = {};
+  p.female = r() < .5 ? 1 : 0; p.cd = r() < s.pcd ? 1 : 0; p.dur = Math.min(40, -Math.log(1 - r()) * s.dur + .1);
+  p.smoker = r() < (p.cd ? .25 : .1) ? 1 : 0; p.prior = r() < s.ptnf ? 1 : 0; p.imm = r() < .4 ? 1 : 0; p.ster = r() < .45 ? 1 : 0;
+  let u = r(), d = 0; while (d < 3 && u > s.drugs[d]) { u -= s.drugs[d]; d++; }
+  if (p.prior && d <= 1 && r() < .6) d = p.cd ? 3 : 2;
+  p.drug = d;
+  const infl = gauss(r) + .3 * p.cd;
+  p.crp = Math.exp(Math.log(8) + .9 * infl + .4 * gauss(r)); p.cal = Math.exp(Math.log(600) + .7 * infl + .5 * gauss(r));
+  p.alb = 38 + 3 * gauss(r) - 1.5 * infl;
+  p.y = r() < 1 / (1 + Math.exp(-(trueLogit(p) + s.shift))) ? 1 : 0;
+  return p;
+}
+function feats(p) {
+  const d = [0, 0, 0, 0]; d[p.drug] = 1;
+  const base = [p.female, p.cd, p.prior, p.smoker, p.imm, p.ster, p.dur / 5, Math.log(p.crp) - Math.log(8), Math.log(p.cal) - Math.log(600), (p.alb - 38) / 4];
+  return base.concat(d, d.map(v => v * p.cd), d.map(v => v * p.prior), d.map(v => v * p.female), d.map(v => v * (1 - p.cd)));
+}
+const NF = 30;
+const predict = (w, x) => { let z = w[NF]; for (let k = 0; k < NF; k++) z += w[k] * x[k]; return 1 / (1 + Math.exp(-z)); };
+function sgd(w, X, Y, epochs, r, lr = .08, l2 = 2e-3) {
+  w = w.slice(); const n = X.length, idx = [...Array(n).keys()];
+  for (let e = 0; e < epochs; e++) {
+    for (let i = n - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [idx[i], idx[j]] = [idx[j], idx[i]]; }
+    for (let b = 0; b < n; b += 32) {
+      const g = new Float64Array(NF + 1), m = Math.min(32, n - b);
+      for (let q = b; q < b + m; q++) { const x = X[idx[q]], err = predict(w, x) - Y[idx[q]]; for (let k = 0; k < NF; k++) g[k] += err * x[k]; g[NF] += err; }
+      for (let k = 0; k <= NF; k++) w[k] -= lr * (g[k] / m + (k < NF ? l2 * w[k] : 0));
+    }
+  }
+  return w;
+}
+function auroc(w, X, Y) {
+  const s = X.map((x, i) => [predict(w, x), Y[i]]).sort((a, b) => a[0] - b[0]);
+  let rank = 0, pos = 0, sumR = 0; s.forEach(([, y], i) => { if (y) { pos++; sumR += i + 1; } });
+  const neg = s.length - pos; return pos && neg ? (sumR - pos * (pos + 1) / 2) / (pos * neg) : .5;
+}
+const sim = {};
+const ROUNDS = 30, EPOCHS = 2;
+function simInit(seed) {
+  const r = rng(seed);
+  sim.seed = seed; sim.r = rng(seed + 7);
+  sim.train = SITES.map((_, s) => { const ps = Array.from({length: SITES[s].n}, () => patient(s, r)); return {X: ps.map(feats), Y: ps.map(p => p.y)}; });
+  sim.test = SITES.map((_, s) => { const ps = Array.from({length: 1200}, () => patient(s, r)); return {X: ps.map(feats), Y: ps.map(p => p.y)}; });
+  const total = SITES.reduce((a, s) => a + s.n, 0);
+  sim.wts = SITES.map(s => s.n / total);
+  const avgAuc = w => sim.test.reduce((a, t) => a + auroc(w, t.X, t.Y), 0) / 3;
+  // references: each hospital alone (its own model on its own test) and pooled
+  const rr = rng(seed + 11), zero = new Array(NF + 1).fill(0);
+  sim.alone = SITES.map((_, s) => auroc(sgd(zero, sim.train[s].X, sim.train[s].Y, ROUNDS * EPOCHS / 2, rr), sim.test[s].X, sim.test[s].Y));
+  sim.aloneAvg = sim.alone.reduce((a, b) => a + b) / 3;
+  const PX = sim.train.flatMap(t => t.X), PY = sim.train.flatMap(t => t.Y);
+  sim.pooledW = sgd(zero, PX, PY, ROUNDS * EPOCHS / 2, rr); sim.pooled = avgAuc(sim.pooledW);
+  sim.w = zero.slice(); sim.round = 0; sim.hist = []; sim.agg = -1; sim.avgAuc = avgAuc;
+}
+function simRound() {
+  if (sim.round >= ROUNDS) return false;
+  const noise = +$("#simNoise").value, clip = .5;
+  const agg = Math.floor(sim.r() * 3), upd = new Array(NF + 1).fill(0);
+  SITES.forEach((_, s) => {
+    const w = sgd(sim.w, sim.train[s].X, sim.train[s].Y, EPOCHS, sim.r);
+    let d = w.map((v, k) => v - sim.w[k]);
+    const nrm = Math.sqrt(d.reduce((a, v) => a + v * v, 0)), sc = Math.min(1, clip / (nrm + 1e-12));
+    d = d.map(v => v * sc + (noise ? gauss(sim.r) * noise * clip / Math.sqrt(NF) : 0));
+    d.forEach((v, k) => upd[k] += v * sim.wts[s]);
+  });
+  sim.w = sim.w.map((v, k) => v + upd[k]);
+  sim.round++; sim.agg = agg;
+  const per = sim.test.map(t => auroc(sim.w, t.X, t.Y));
+  sim.hist.push({per, avg: per.reduce((a, b) => a + b) / 3, agg});
+  return true;
+}
+// network view
+const snet = $("#simNet"), SN = [{x: 120, y: 250}, {x: 440, y: 250}, {x: 280, y: 330}];
+let netEls;
+(function drawNet() {
+  S("rect", {x: 190, y: 26, width: 180, height: 46, rx: 12, fill: "none", stroke: "rgba(255,255,255,.18)", "stroke-dasharray": "6 5"}, snet);
+  ST(snet, 280, 55, "Coordinator · no weights", {"text-anchor": "middle", fill: COL.muted, "font-size": 13, "font-family": "JetBrains Mono"});
+  SN.forEach(n => S("line", {x1: 280, y1: 72, x2: n.x, y2: n.y - 36, stroke: "rgba(255,255,255,.12)", "stroke-dasharray": "3 6"}, snet));
+  const links = []; for (let i = 0; i < 3; i++) for (let j = i + 1; j < 3; j++) links.push({i, j, el: S("line", {x1: SN[i].x, y1: SN[i].y, x2: SN[j].x, y2: SN[j].y, stroke: "rgba(62,230,200,.2)", "stroke-width": 3}, snet)});
+  const nodes = SN.map((n, i) => {
+    const c = S("circle", {cx: n.x, cy: n.y, r: 36, fill: "rgba(12,24,30,.95)", stroke: COL.teal, "stroke-width": 1.5}, snet);
+    ST(snet, n.x, n.y - 46, HOSP[i], {"text-anchor": "middle", fill: COL.ink, "font-size": 15, "font-family": "Space Grotesk"});
+    const v = ST(snet, n.x, n.y + 6, "–", {"text-anchor": "middle", fill: COL.ink, "font-size": 15, "font-family": "JetBrains Mono", "font-weight": 600});
+    return {c, v};
+  });
+  const pk = SN.map(() => S("circle", {r: 7, fill: COL.swarm, opacity: 0}, snet));
+  const tag = ST(snet, 280, 372, "", {"text-anchor": "middle", fill: COL.muted, "font-size": 12, "font-family": "JetBrains Mono"});
+  netEls = {links, nodes, pk, tag};
+})();
+let flyRaf = 0;
+function paintNet(animate) {
+  const h = sim.hist[sim.hist.length - 1], a = sim.agg;
+  netEls.nodes.forEach((n, i) => { n.c.setAttribute("fill", i === a ? "rgba(62,230,200,.22)" : "rgba(12,24,30,.95)"); n.c.setAttribute("stroke-width", i === a ? 3 : 1.5); n.v.textContent = h ? h.per[i].toFixed(3) : "–"; });
+  netEls.links.forEach(l => l.el.setAttribute("stroke", (l.i === a || l.j === a) ? "rgba(62,230,200,.75)" : "rgba(62,230,200,.2)"));
+  netEls.tag.textContent = h ? `round ${sim.round}: ${HOSP[a]} averaged · AUROC shown per hospital` : "AUROC per hospital appears after round 1";
+  if (!animate || reduced || a < 0) return;
+  cancelAnimationFrame(flyRaf);
+  const t0 = performance.now(), D = 700;
+  const f = now => {
+    const t = Math.min(1, (now - t0) / D), inb = t < .5, u = inb ? t * 2 : (t - .5) * 2;
+    SN.forEach((n, i) => {
+      const d = netEls.pk[i];
+      if (i === a || t >= 1) { d.setAttribute("opacity", 0); return; }
+      const A = inb ? n : SN[a], B = inb ? SN[a] : n, v = .2 + .6 * u;
+      d.setAttribute("cx", A.x + (B.x - A.x) * v); d.setAttribute("cy", A.y + (B.y - A.y) * v);
+      d.setAttribute("fill", inb ? COL.muted : COL.swarm); d.setAttribute("opacity", 1);
+    });
+    if (t < 1) flyRaf = requestAnimationFrame(f);
+  };
+  flyRaf = requestAnimationFrame(f);
+}
+const sch = $("#simChart");
+function paintChart() {
+  sch.innerHTML = "";
+  const W = 560, H = 300, m = {l: 44, r: 12, t: 12, b: 30}, lo = .5, hi = .85;
+  const x = r => m.l + (r - 1) / (ROUNDS - 1) * (W - m.l - m.r), y = v => m.t + (1 - (Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo)) * (H - m.t - m.b);
+  for (let v = .5; v <= hi + 1e-9; v += .05) { S("line", {x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: COL.line}, sch); ST(sch, m.l - 8, y(v) + 4, v.toFixed(2), {"text-anchor": "end", fill: COL.dim, "font-size": 11, "font-family": "JetBrains Mono"}); }
+  [1, 10, 20, 30].forEach(r => ST(sch, x(r), H - 10, "round " + r, {"text-anchor": "middle", fill: COL.dim, "font-size": 11, "font-family": "JetBrains Mono"}));
+  S("line", {x1: m.l, x2: W - m.r, y1: y(sim.aloneAvg), y2: y(sim.aloneAvg), stroke: COL.local, "stroke-width": 1.5, "stroke-dasharray": "6 6"}, sch);
+  S("line", {x1: m.l, x2: W - m.r, y1: y(sim.pooled), y2: y(sim.pooled), stroke: COL.pooled, "stroke-width": 1.5, "stroke-dasharray": "6 6"}, sch);
+  if (sim.hist.length) {
+    [0, 1, 2].forEach(i => S("path", {d: sim.hist.map((h, k) => `${k ? "L" : "M"}${x(k + 1)},${y(h.per[i])}`).join(""), fill: "none", stroke: "rgba(90,184,255,.28)", "stroke-width": 1.5}, sch));
+    S("path", {d: sim.hist.map((h, k) => `${k ? "L" : "M"}${x(k + 1)},${y(h.avg)}`).join(""), fill: "none", stroke: COL.swarm, "stroke-width": 3}, sch);
+    const last = sim.hist[sim.hist.length - 1];
+    S("circle", {cx: x(sim.hist.length), cy: y(last.avg), r: 5, fill: COL.swarm, stroke: "#04090c", "stroke-width": 2}, sch);
+  }
+  const cur = sim.hist.length ? sim.hist[sim.hist.length - 1].avg : null;
+  $("#simRO").innerHTML = [
+    ["Alone (average)", sim.aloneAvg, COL.local],
+    ["Swarm, round " + sim.round, cur, COL.swarm],
+    ["Pooled ceiling", sim.pooled, COL.pooled],
+  ].map(([l, v, c]) => `<div class="ro"><small>${l}</small><b style="color:${c}">${v == null ? "–" : v.toFixed(3)}</b></div>`).join("");
+}
+let simTimer = null;
+function simStatus() {
+  const h = sim.hist[sim.hist.length - 1];
+  if (!h) { $("#simStatus").innerHTML = "Press <b>Play</b> to start round 1."; return; }
+  const gain = sim.pooled - sim.aloneAvg, got = (h.avg - sim.aloneAvg) / (gain || 1);
+  $("#simStatus").innerHTML = `Round <b>${sim.round}</b> of ${ROUNDS} · ${HOSP[h.agg]} averaged · swarm ${h.avg >= sim.aloneAvg ? "beats" : "is still below"} training alone` +
+    (gain > 0 && h.avg > sim.aloneAvg ? ` · <b>${Math.round(Math.min(1.5, got) * 100)}%</b> of the pooled gain` : "");
+}
+function simTick() {
+  if (!simRound()) { simStop(); $("#simPlay").textContent = "↻ Run again"; return; }
+  paintNet(true); paintChart(); simStatus(); updateTherapy();
+}
+function simStop() { clearInterval(simTimer); simTimer = null; if (sim.round < ROUNDS) $("#simPlay").textContent = "▶ Play"; }
+$("#simPlay").onclick = () => {
+  if (simTimer) return simStop();
+  if (sim.round >= ROUNDS) { simInit(sim.seed); paintNet(false); paintChart(); simStatus(); }
+  $("#simPlay").textContent = "❚❚ Pause"; simTick(); simTimer = setInterval(simTick, reduced ? 200 : 650);
+};
+$("#simStep").onclick = () => { simStop(); simTick(); };
+$("#simReset").onclick = () => { simStop(); simInit(Math.floor(Math.random() * 1e9)); paintNet(false); paintChart(); simStatus(); $("#simPlay").textContent = "▶ Play"; updateTherapy(); };
+$("#simNoise").oninput = e => $("#simNoiseV").textContent = (+e.target.value).toFixed(2);
+simInit(20261025); paintNet(false); paintChart(); simStatus();
+enter.sim = () => { if (!sim.hist.length && !simTimer) $("#simPlay").click(); };
+
+/* ============ ONE ROUND STEPPER ============ */
+let stepI = 0;
+enter.round = () => setInterval(() => { $$("#steps .step").forEach((s, i) => s.classList.toggle("lit", i === stepI)); stepI = (stepI + 1) % 4; }, reduced ? 4000 : 1600);
+
+/* ============ THERAPY EXPLORER ============ */
+const tx = {cd: 1, female: 1, prior: 1, smoker: 0, imm: 0, ster: 1, crp: 15, cal: 900, alb: 36, dur: 4};
+const txForm = $("#txForm");
+const seg = (k, opts) => `<span class="seg" data-k="${k}">${opts.map(([v, l]) => `<button data-v="${v}" class="${tx[k] == v ? "on" : ""}">${l}</button>`).join("")}</span>`;
+const rng2 = (k, min, max, step, lab) => `<span style="display:flex;gap:10px;align-items:center"><input type="range" id="tx_${k}" data-k="${k}" min="${min}" max="${max}" step="${step}" value="${tx[k]}" aria-label="${lab}"><span class="mono small num" id="txv_${k}" style="min-width:64px;text-align:right"></span></span>`;
+txForm.innerHTML = `<div class="tiny" style="margin-bottom:6px">DESCRIBE A PATIENT</div>
+<div class="field-row"><span>Diagnosis</span>${seg("cd", [[1, "Crohn's"], [0, "Ulcerative colitis"]])}</div>
+<div class="field-row"><span>Sex</span>${seg("female", [[1, "Woman"], [0, "Man"]])}</div>
+<div class="field-row"><span>Prior anti-TNF</span>${seg("prior", [[1, "Yes"], [0, "No"]])}</div>
+<div class="field-row"><span>Current smoker</span>${seg("smoker", [[1, "Yes"], [0, "No"]])}</div>
+<div class="field-row"><span>On prednisolone</span>${seg("ster", [[1, "Yes"], [0, "No"]])}</div>
+<div class="field-row"><span>CRP (mg/L)</span>${rng2("crp", 1, 80, 1, "CRP")}</div>
+<div class="field-row"><span>Calprotectin (µg/g)</span>${rng2("cal", 50, 3000, 50, "Calprotectin")}</div>
+<div class="field-row"><span>Albumin (g/L)</span>${rng2("alb", 25, 48, 1, "Albumin")}</div>`;
+txForm.addEventListener("click", e => { const b = e.target.closest(".seg button"); if (!b) return; const k = b.parentElement.dataset.k; tx[k] = +b.dataset.v; b.parentElement.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); updateTherapy(); });
+txForm.addEventListener("input", e => { if (e.target.dataset.k) { tx[e.target.dataset.k] = +e.target.value; updateTherapy(); } });
+$("#txBars").innerHTML = DRUGS.map((d, i) => `<div class="drug" id="drug${i}"><span>${d}</span><div class="bar"><i></i></div><b>–</b></div>`).join("");
+function updateTherapy() {
+  ["crp", "cal", "alb"].forEach(k => $("#txv_" + k).textContent = tx[k]);
+  const w = sim.hist.length ? sim.w : sim.pooledW, src = sim.hist.length ? `the swarm model after round ${sim.round}` : "a model trained on the synthetic cohorts (run the simulation to use the swarm model)";
+  const probs = DRUGS.map((_, d) => predict(w, feats({female: tx.female, cd: tx.cd, prior: tx.prior, smoker: tx.smoker, imm: tx.imm, ster: tx.ster, dur: tx.dur, crp: tx.crp, cal: tx.cal, alb: tx.alb, drug: d})));
+  const best = probs.indexOf(Math.max(...probs));
+  probs.forEach((p, i) => { const el = $("#drug" + i); el.querySelector("i").style.width = (p * 100).toFixed(0) + "%"; el.querySelector("b").textContent = Math.round(p * 100) + "%"; el.classList.toggle("best", i === best); });
+  $("#txNote").textContent = `Highest predicted chance: ${DRUGS[best]}. Bars come from ${src}.`;
+}
+updateTherapy();
+
+/* ============ RESULTS (real PoC numbers) ============ */
+const RES = {
+  site: {"Östergötland": [.703, .720, .729], "Örebro": [.739, .747, .752], "Oslo": [.699, .704, .704], "All": [.714, .728, .734]},
+  sex: {"Women": [.721, .740, .747], "Men": [.706, .716, .719]},
+};
+let resView = "site";
+function drawRes() {
+  const svg = $("#resChart"); svg.innerHTML = "";
+  const W = 640, H = 330, m = {l: 44, r: 8, t: 20, b: 34}, lo = .5, hi = .8, y = v => m.t + (1 - (v - lo) / (hi - lo)) * (H - m.t - m.b);
+  for (let v = lo; v <= hi + 1e-9; v += .1) { S("line", {x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: COL.line}, svg); ST(svg, m.l - 8, y(v) + 4, v.toFixed(1), {"text-anchor": "end"}); }
+  const D = RES[resView], G = Object.keys(D), gw = (W - m.l - m.r) / G.length, bw = Math.min(46, (gw - 30) / 3), cols = [COL.local, COL.swarm, COL.pooled];
+  const bars = [];
+  G.forEach((g, gi) => {
+    const x0 = m.l + gi * gw + (gw - bw * 3 - 8) / 2;
+    ST(svg, m.l + gi * gw + gw / 2, H - 10, g, {"text-anchor": "middle", fill: COL.ink, "font-size": 13});
+    D[g].forEach((v, si) => {
+      const x = x0 + si * (bw + 4), r = S("rect", {x, y: y(lo), width: bw, height: 0, rx: 4, fill: cols[si]}, svg);
+      const t = ST(svg, x + bw / 2, y(v) - 6, v.toFixed(3).slice(1), {"text-anchor": "middle", fill: si === 1 ? COL.ink : COL.muted, "font-size": 11, opacity: 0});
+      bars.push({r, t, v, d: gi * 120 + si * 60});
+    });
+  });
+  const t0 = performance.now();
+  const f = now => { let done = true; bars.forEach(b => { const u = reduced ? 1 : Math.max(0, Math.min(1, (now - t0 - b.d) / 700)), e = 1 - Math.pow(1 - u, 3), top = y(lo) - (y(lo) - y(b.v)) * e; b.r.setAttribute("y", top); b.r.setAttribute("height", y(lo) - top); b.t.setAttribute("opacity", u >= 1 ? 1 : 0); if (u < 1) done = false; }); if (!done) requestAnimationFrame(f); };
+  requestAnimationFrame(f);
+}
+$$("#resTabs .chip").forEach(b => b.onclick = () => { $$("#resTabs .chip").forEach(x => x.classList.toggle("on", x === b)); resView = b.dataset.v; drawRes(); });
+enter.results = () => { drawRes(); countUp($("#results")); };
+
+/* ============ LEARNING CURVE + PRIVACY ============ */
+const HC = {
+  "All hospitals": [.692,.711,.715,.718,.719,.721,.723,.725,.726,.727,.727,.727,.727,.727,.728,.728,.728,.729,.728,.729,.73,.73,.731,.731,.731,.732,.733,.733,.733,.733],
+  "Östergötland": [.672,.694,.7,.704,.706,.709,.711,.713,.714,.716,.717,.718,.718,.719,.72,.721,.721,.722,.722,.723,.723,.724,.725,.726,.726,.726,.727,.727,.728,.728],
+  "Örebro": [.705,.729,.734,.736,.737,.74,.741,.743,.744,.745,.746,.745,.745,.746,.746,.747,.747,.748,.747,.749,.749,.75,.751,.751,.751,.752,.753,.753,.754,.754],
+  "Oslo": [.677,.692,.697,.7,.702,.704,.705,.706,.706,.705,.704,.704,.703,.703,.702,.702,.702,.702,.701,.701,.702,.702,.701,.702,.701,.702,.702,.703,.703,.703],
+};
+function drawCurve() {
+  const svg = $("#curveChart"); svg.innerHTML = "";
+  const W = 640, H = 340, m = {l: 44, r: 108, t: 14, b: 30}, lo = .66, hi = .76;
+  const x = r => m.l + (r - 1) / 29 * (W - m.l - m.r), y = v => m.t + (1 - (v - lo) / (hi - lo)) * (H - m.t - m.b);
+  for (let v = lo; v <= hi + 1e-9; v += .02) { S("line", {x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: COL.line}, svg); ST(svg, m.l - 8, y(v) + 4, v.toFixed(2), {"text-anchor": "end"}); }
+  [1, 10, 20, 30].forEach(r => ST(svg, x(r), H - 8, "round " + r, {"text-anchor": "middle"}));
+  const labels = [];
+  [[.714, COL.local, "Alone"], [.734, COL.pooled, "Pooled"]].forEach(([v, c, l]) => { S("line", {x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: c, "stroke-width": 1.5, "stroke-dasharray": "6 6"}, svg); labels.push({y: y(v), t: l, c: COL.muted}); });
+  const paths = [];
+  Object.entries(HC).forEach(([k, a], i) => {
+    const main = i === 0;
+    paths.push(S("path", {d: a.map((v, r) => `${r ? "L" : "M"}${x(r + 1)},${y(v)}`).join(""), fill: "none", stroke: main ? COL.swarm : "rgba(90,184,255,.35)", "stroke-width": main ? 3.5 : 1.5}, svg));
+    labels.push({y: y(a[29]), t: k, c: main ? COL.ink : COL.muted});
+  });
+  labels.sort((a, b) => a.y - b.y); for (let i = 1; i < labels.length; i++) labels[i].y = Math.max(labels[i].y, labels[i - 1].y + 14);
+  labels.forEach(l => ST(svg, W - m.r + 8, l.y + 4, l.t, {fill: l.c, "font-size": 11}));
+  paths.forEach(p => { const L = p.getTotalLength(); p.style.strokeDasharray = L; p.style.strokeDashoffset = reduced ? 0 : L; p.getBoundingClientRect(); p.style.transition = "stroke-dashoffset 2.2s cubic-bezier(.3,.6,.2,1)"; p.style.strokeDashoffset = 0; });
+  const cross = S("line", {y1: m.t, y2: H - m.b, stroke: "rgba(255,255,255,.3)", opacity: 0}, svg);
+  const tip = ST(svg, 0, m.t + 12, "", {fill: COL.ink, "font-size": 12, opacity: 0});
+  const hit = S("rect", {x: m.l, y: m.t, width: W - m.l - m.r, height: H - m.t - m.b, fill: "transparent"}, svg);
+  hit.addEventListener("pointermove", e => {
+    const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; const p = pt.matrixTransform(svg.getScreenCTM().inverse());
+    const r = Math.max(1, Math.min(30, Math.round((p.x - m.l) / (W - m.l - m.r) * 29 + 1)));
+    cross.setAttribute("x1", x(r)); cross.setAttribute("x2", x(r)); cross.setAttribute("opacity", 1);
+    tip.textContent = `round ${r} · all ${HC["All hospitals"][r - 1].toFixed(3)} · Öst ${HC["Östergötland"][r - 1].toFixed(3)} · Öre ${HC["Örebro"][r - 1].toFixed(3)} · Oslo ${HC["Oslo"][r - 1].toFixed(3)}`;
+    tip.setAttribute("x", Math.min(x(r) + 8, W - 380)); tip.setAttribute("opacity", 1);
+  });
+  hit.addEventListener("pointerleave", () => { cross.setAttribute("opacity", 0); tip.setAttribute("opacity", 0); });
+}
+enter.curve = drawCurve;
+const DP = [[0, .728, "No noise: the full gain from training together."], [.05, .727, "A little noise costs almost nothing."], [.1, .711, "Now noise costs more than training together gains: below the 0.714 of training alone."], [.2, .687, "Strong noise: clearly worse than training alone."]];
+$("#dpSlider").oninput = e => { const [, v, note] = DP[+e.target.value]; $("#dpVal").textContent = v.toFixed(3); $("#dpVal").style.color = v >= .714 ? COL.teal : COL.local; $("#dpNote").textContent = note; };
+$("#dpSlider").oninput({target: $("#dpSlider")});
+
+/* ============ TERMINAL REPLAY (real run of demo/run_demo.sh) ============ */
+const LOG = [
+  ["h", "== 1. Each hospital gets its own synthetic OMOP CDM extract (no real patients)"],
+  ["", "   rost  Region Östergötland (SWIBREG): person=600, measurement=2400, observation=1800"],
+  ["", "   oru   Örebro University Hospital (SWIBREG): person=450, measurement=1800, observation=1350"],
+  ["", "   ous   Oslo University Hospital (NorIBD): person=350, measurement=1400, observation=1050"],
+  ["h", "== 2. Provisioning: a certificate and private key per participant (mutual TLS)"],
+  ["d", "   kit: admin@rise.se  localhost  oru  ous  rost  lead@ous-hf.no  lead@regionostergotland.se"],
+  ["h", "== 3. Starting the coordinator (admits sites, starts jobs, holds no data or weights)"],
+  ["h", "== 4. Starting three hospital clients, each with only its own kit"],
+  ["g", "   Successfully registered client:rost for project anchor_ibd."],
+  ["g", "   Successfully registered client:oru for project anchor_ibd."],
+  ["g", "   Successfully registered client:ous for project anchor_ibd."],
+  ["h", "== 5. The RISE admin submits the swarm job (5 rounds)"],
+  ["d", "   job id: de3768ee-96ad-4103-9d39-e4eabd2e198a"],
+  ["h", "== 6. Training: hospitals train locally, one hospital averages each round"],
+  ["b", "   round 0: averaged at rost"],
+  ["", "      [oru] round 0: global model val loss 0.694, test AUROC 0.624 (F 0.614 / M 0.616)"],
+  ["", "      [ous] round 0: global model val loss 0.692, test AUROC 0.551 (F 0.598 / M 0.518)"],
+  ["", "      [rost] round 0: global model val loss 0.700, test AUROC 0.505 (F 0.454 / M 0.546)"],
+  ["b", "   round 1: averaged at rost"],
+  ["", "      [oru] round 1: global model val loss 0.677, test AUROC 0.693 (F 0.736 / M 0.634)"],
+  ["", "      [ous] round 1: global model val loss 0.684, test AUROC 0.638 (F 0.645 / M 0.653)"],
+  ["", "      [rost] round 1: global model val loss 0.677, test AUROC 0.677 (F 0.662 / M 0.690)"],
+  ["b", "   round 2: averaged at ous"],
+  ["", "      [oru] round 2: global model val loss 0.654, test AUROC 0.701 (F 0.738 / M 0.651)"],
+  ["", "      [ous] round 2: global model val loss 0.670, test AUROC 0.677 (F 0.664 / M 0.697)"],
+  ["", "      [rost] round 2: global model val loss 0.656, test AUROC 0.720 (F 0.722 / M 0.713)"],
+  ["b", "   round 3: averaged at rost"],
+  ["", "      [oru] round 3: global model val loss 0.628, test AUROC 0.715 (F 0.742 / M 0.679)"],
+  ["", "      [ous] round 3: global model val loss 0.651, test AUROC 0.694 (F 0.680 / M 0.718)"],
+  ["", "      [rost] round 3: global model val loss 0.644, test AUROC 0.745 (F 0.752 / M 0.721)"],
+  ["b", "   round 4: averaged at ous"],
+  ["", "      [oru] round 4: global model val loss 0.605, test AUROC 0.719 (F 0.736 / M 0.692)"],
+  ["", "      [ous] round 4: global model val loss 0.633, test AUROC 0.698 (F 0.678 / M 0.713)"],
+  ["", "      [rost] round 4: global model val loss 0.637, test AUROC 0.752 (F 0.764 / M 0.726)"],
+  ["h", "== 7. What the coordinator did"],
+  ["g", "   aggregation steps in the coordinator log: 0"],
+  ["g", "   patient records sent: 0 (each client only read its own folder)"],
+];
+let termT = null;
+function runTerm() {
+  const out = $("#term"); out.innerHTML = ""; clearInterval(termT); $("#termState").textContent = "running";
+  let i = 0;
+  const add = () => {
+    if (i >= LOG.length) { clearInterval(termT); $("#termState").textContent = "done"; return; }
+    const [c, t] = LOG[i++], s = document.createElement("span"); if (c) s.className = c; s.textContent = t + "\n"; out.appendChild(s); out.scrollTop = out.scrollHeight;
+  };
+  if (reduced) { while (i < LOG.length) add(); return; }
+  termT = setInterval(add, 260);
+}
+$("#termReplay").onclick = runTerm;
+$("#termCopy").onclick = async () => { try { await navigator.clipboard.writeText("bash demo/run_demo.sh"); $("#termCopy").textContent = "Copied"; } catch (e) { $("#termCopy").textContent = "Select and copy the command"; } setTimeout(() => $("#termCopy").textContent = "Copy command", 1800); };
+enter.demo = runTerm;
+</script>
+</body>
+</html>
